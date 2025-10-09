@@ -1,0 +1,11 @@
+name: Call Build Base Workflow
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-custom-image:
+    name: Build Custom ERPNext Image
+    uses: deepzide/Efficia-Integrations_ERP_backend/.github/workflows/build-base.yml@main
