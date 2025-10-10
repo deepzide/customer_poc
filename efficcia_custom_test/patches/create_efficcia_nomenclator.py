@@ -3,7 +3,7 @@ import frappe
 import random
 import string
 
-DOCTYPE = "Efficcia_Doctype_Test"
+DOCTYPE = "Efficcia Doc"
 FILE_PATH = frappe.get_app_path("efficcia_custom_test", "nomenclators", "efficcia_doctype_test.json")
 
 
