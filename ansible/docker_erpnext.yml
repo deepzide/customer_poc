@@ -6,7 +6,7 @@
     project_dir: /opt/erpnext
     repo_url: https://github.com/frappe/frappe_docker.git
     target_image: dcorps/deepzide:latest
-    force_update: false  # Cambiar a true para forzar actualización de imagen
+    force_update: true  # Cambiar a true para forzar actualización de imagen
 
 
   tasks:
