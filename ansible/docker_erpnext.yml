@@ -196,6 +196,70 @@
         prompt: "Esperando a que los servicios de ERPNext estén listos..."
 
     # ------------------------------------------------------------------------
+    # 🔍 DIAGNÓSTICO: Verificar apps instaladas
+    # ------------------------------------------------------------------------
+    - name: List installed apps on all sites
+      ansible.builtin.shell: |
+        docker compose -f pwd.yml exec -T backend bench --site all list-apps
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: list_apps_output
+      when: force_update | bool
+      failed_when: false
+
+    - name: Mostrar apps instaladas actualmente
+      ansible.builtin.debug:
+        msg: "{{ list_apps_output.stdout_lines }}"
+      when: force_update | bool
+
+    # ------------------------------------------------------------------------
+    # 📦 INSTALACIÓN: Instalar apps faltantes si es necesario
+    # ------------------------------------------------------------------------
+    - name: Install erpnext if missing
+      ansible.builtin.shell: |
+        docker compose -f pwd.yml exec -T backend bench --site all install-app erpnext
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: install_erpnext_output
+      when: 
+        - force_update | bool
+        - "'erpnext' not in list_apps_output.stdout"
+      failed_when: false
+
+    - name: Mostrar resultado de instalación de erpnext
+      ansible.builtin.debug:
+        msg: "{{ install_erpnext_output.stdout_lines }}"
+      when: 
+        - force_update | bool
+        - "'erpnext' not in list_apps_output.stdout"
+
+    - name: Install custom apps if missing
+      ansible.builtin.shell: |
+        apps_to_install=""
+        for app in {{ custom_apps | join(' ') }}; do
+          if ! docker compose -f pwd.yml exec -T backend bench --site all list-apps | grep -q "$app"; then
+            apps_to_install="$apps_to_install $app"
+            docker compose -f pwd.yml exec -T backend bench --site all install-app "$app" || true
+          fi
+        done
+        echo "Apps instaladas: $apps_to_install"
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+        executable: /bin/bash
+      register: install_custom_apps_output
+      when: 
+        - force_update | bool
+        - custom_apps | length > 0
+      failed_when: false
+
+    - name: Mostrar resultado de instalación de apps custom
+      ansible.builtin.debug:
+        msg: "{{ install_custom_apps_output.stdout_lines }}"
+      when: 
+        - force_update | bool
+        - custom_apps | length > 0
+
+    # ------------------------------------------------------------------------
     # 🔄 MIGRACIÓN: Ejecutar bench migrate después de actualizar
     # ------------------------------------------------------------------------
     - name: Run bench migrate on all sites
