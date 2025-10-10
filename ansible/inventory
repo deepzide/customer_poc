@@ -1,0 +1,7 @@
+[erpnext]
+5.161.100.167
+
+[erpnext:vars]
+ansible_user=root
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
