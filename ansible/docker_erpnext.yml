@@ -6,6 +6,7 @@
     project_dir: /opt/erpnext
     repo_url: https://github.com/frappe/frappe_docker.git
     target_image: dcorps/deepzide:latest
+    force_update: false  # Cambiar a true para forzar actualización de imagen
 
 
   tasks:
@@ -142,6 +143,37 @@
         msg: "{{ sed_output.stdout_lines }}"
 
     # ------------------------------------------------------------------------
+    # 🔄 ACTUALIZACIÓN: Pull nueva versión de la imagen si force_update está activo
+    # ------------------------------------------------------------------------
+    - name: Pull latest custom image
+      ansible.builtin.command:
+        cmd: docker pull {{ target_image }}
+      register: pull_output
+      when: force_update | bool
+
+    - name: Mostrar resultado del pull de imagen
+      ansible.builtin.debug:
+        msg: "{{ pull_output.stdout_lines }}"
+      when: force_update | bool
+
+    # ------------------------------------------------------------------------
+    # 🔄 ACTUALIZACIÓN: Bajar contenedores existentes antes de actualizar
+    # ------------------------------------------------------------------------
+    - name: Take down existing containers (if updating)
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml down
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: down_output
+      when: force_update | bool
+      ignore_errors: yes
+
+    - name: Mostrar salida del docker compose down
+      ansible.builtin.debug:
+        msg: "{{ down_output.stdout_lines }}"
+      when: force_update | bool
+
+    # ------------------------------------------------------------------------
     # 🚀 Levantar los servicios
     # ------------------------------------------------------------------------
     - name: Deploy ERPNext stack using pwd.yml
@@ -156,6 +188,47 @@
         msg: "{{ up_output.stdout_lines }}"
 
     # ------------------------------------------------------------------------
+    # ⏳ Esperar a que los servicios estén listos
+    # ------------------------------------------------------------------------
+    - name: Wait for ERPNext services to be healthy
+      ansible.builtin.pause:
+        seconds: 30
+        prompt: "Esperando a que los servicios de ERPNext estén listos..."
+
+    # ------------------------------------------------------------------------
+    # 🔄 MIGRACIÓN: Ejecutar bench migrate después de actualizar
+    # ------------------------------------------------------------------------
+    - name: Run bench migrate on all sites
+      ansible.builtin.shell: |
+        docker compose -f pwd.yml exec -T backend bench --site all migrate
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: migrate_output
+      when: force_update | bool
+      failed_when: false
+
+    - name: Mostrar resultado de la migración
+      ansible.builtin.debug:
+        msg: "{{ migrate_output.stdout_lines }}"
+      when: force_update | bool
+
+    # ------------------------------------------------------------------------
+    # 🔄 Reiniciar servicios después de la migración
+    # ------------------------------------------------------------------------
+    - name: Restart services after migration
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml restart
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: restart_output
+      when: force_update | bool
+
+    - name: Mostrar resultado del restart
+      ansible.builtin.debug:
+        msg: "{{ restart_output.stdout_lines }}"
+      when: force_update | bool
+
+    # ------------------------------------------------------------------------
     # 📋 Listar contenedores actuales
     # ------------------------------------------------------------------------
     - name: List running Docker containers
@@ -166,4 +239,3 @@
     - name: Mostrar salida de docker ps
       ansible.builtin.debug:
         msg: "{{ docker_ps_output.stdout_lines }}"
-
