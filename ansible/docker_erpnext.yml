@@ -1,0 +1,169 @@
+---
+- name: Deploy custom ERPNext stack
+  hosts: erpnext
+  become: true
+  vars:
+    project_dir: /opt/erpnext
+    repo_url: https://github.com/frappe/frappe_docker.git
+    target_image: dcorps/deepzide:latest
+
+
+  tasks:
+    # ------------------------------------------------------------------------
+    # 🗂️ Preparación del servidor
+    # ------------------------------------------------------------------------
+    - name: Ensure project directory exists
+      ansible.builtin.file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: "0755"
+
+    # ------------------------------------------------------------------------
+    # 🐳 Instalación de Docker y Docker Compose (100 % nativo)
+    # ------------------------------------------------------------------------
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Ensure dependencies are installed
+      ansible.builtin.package:
+        name:
+          - bc
+          - curl
+          - expect
+          - git
+          - ca-certificates
+        state: present
+
+    - name: Create Docker GPG key directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Docker's official GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Add Docker repository to Apt sources
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+
+    - name: Update apt cache after adding Docker repository
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Docker and Docker Compose
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Ensure Docker service is enabled and started
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # ------------------------------------------------------------------------
+    # ⚙️ Clone ERPNext docker
+    # ------------------------------------------------------------------------
+    - name: Clone frappe_docker repository
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ project_dir }}/frappe_docker"
+        version: main
+        force: yes
+
+    # ------------------------------------------------------------------------
+    # 📋 Leer apps desde archivo custom.txt local
+    # ------------------------------------------------------------------------
+    - name: Leer apps desde custom.txt local
+      ansible.builtin.set_fact:
+        custom_apps: "{{ lookup('file', '../custom.txt').split('\n') | select('match', '^[^#]') | reject('equalto', '') | reject('equalto', 'erpnext') | list }}"
+
+    - name: Mostrar apps leídas desde custom.txt
+      ansible.builtin.debug:
+        msg: "Apps leídas (sin duplicar erpnext): {{ custom_apps }}"
+
+    # ------------------------------------------------------------------------
+    # ✏️ Agregar apps al comando bench new-site
+    # ------------------------------------------------------------------------
+    - name: Agregar apps al comando bench new-site
+      ansible.builtin.shell: |
+        # Construir el fragmento de instalación de apps
+        apps_flags=""
+        for app in {{ custom_apps | join(' ') }}; do
+          apps_flags="$apps_flags --install-app $app"
+        done
+
+        # Agregar las apps custom después de --install-app erpnext (sin duplicar)
+        sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
+
+        echo "✅ Se agregaron las apps al comando bench new-site:"
+        grep "bench new-site" {{ project_dir }}/frappe_docker/pwd.yml
+      args:
+        executable: /bin/bash
+      register: add_apps_output
+
+    - name: Mostrar resultado de la inserción de apps
+      ansible.builtin.debug:
+        msg: "{{ add_apps_output.stdout_lines }}"
+
+    # ------------------------------------------------------------------------
+    # ✏️ Modificar pwd.yml para usar imagen custom
+    # ------------------------------------------------------------------------
+    - name: Replace frappe/erpnext image with custom image (any version)
+      ansible.builtin.shell: |
+        sed -i "s|frappe/erpnext:[^\"']*|{{ target_image }}|g" {{ project_dir }}/frappe_docker/pwd.yml
+        echo "✅ Imagen reemplazada. Contenido actual de pwd.yml:"
+        echo "-------------------------------------------------"
+        cat {{ project_dir }}/frappe_docker/pwd.yml
+      args:
+        executable: /bin/bash
+      register: sed_output
+
+    - name: Mostrar salida del reemplazo de imagen
+      ansible.builtin.debug:
+        msg: "{{ sed_output.stdout_lines }}"
+
+    # ------------------------------------------------------------------------
+    # 🚀 Levantar los servicios
+    # ------------------------------------------------------------------------
+    - name: Deploy ERPNext stack using pwd.yml
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml up -d
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: up_output
+
+    - name: Mostrar salida del docker compose up
+      ansible.builtin.debug:
+        msg: "{{ up_output.stdout_lines }}"
+
+    # ------------------------------------------------------------------------
+    # 📋 Listar contenedores actuales
+    # ------------------------------------------------------------------------
+    - name: List running Docker containers
+      ansible.builtin.command:
+        cmd: docker ps
+      register: docker_ps_output
+
+    - name: Mostrar salida de docker ps
+      ansible.builtin.debug:
+        msg: "{{ docker_ps_output.stdout_lines }}"
+
