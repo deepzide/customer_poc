@@ -1,5 +1,5 @@
 {
- "app": "Efficcia Custom Test",
+ "app": "Lester prueba commit",
  "charts": [],
  "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Efficcia Custom Test</span>\",\"col\":12}},{\"id\":\"tvCop1l0ws\",\"type\":\"card\",\"data\":{\"card_name\":\"Nueva Tarjeta\",\"col\":4}}]",
  "creation": "2025-10-08 00:15:40.149017",
@@ -12,7 +12,7 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "Efficcia Custom Test",
+ "label": "Lester prueba commit",
  "link_type": "DocType",
  "links": [
   {
@@ -38,7 +38,7 @@
  "modified": "2025-10-08 00:25:26.686696",
  "modified_by": "Administrator",
  "module": "Efficcia Custom Test",
- "name": "Efficcia Custom Test",
+ "name": "prueba commit lester",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
@@ -47,6 +47,6 @@
  "roles": [],
  "sequence_id": 23.0,
  "shortcuts": [],
- "title": "Efficcia Custom Test",
+ "title": "Lester prueba commit",
  "type": "Workspace"
 }
