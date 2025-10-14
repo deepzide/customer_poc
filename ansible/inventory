@@ -1,5 +1,5 @@
 [erpnext]
-5.161.100.167
+5.161.88.178
 
 [erpnext:vars]
 ansible_user=root
