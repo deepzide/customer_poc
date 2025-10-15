@@ -197,9 +197,8 @@
     - name: Wait for backend to be ready
       ansible.builtin.wait_for:
         port: 8080
-        delay: 15
+        delay: 20
         timeout: 180
-      when: running_containers.stdout | length > 0
 
     - name: Check if site exists
       ansible.builtin.command:
@@ -221,9 +220,7 @@
         echo "✅ Migraciones completadas"
       args:
         chdir: "{{ project_dir }}/frappe_docker"
-      when: 
-        - site_check.rc == 0
-        - pull_output.changed or running_containers.stdout | length > 0
+      when: site_check.rc == 0
       register: migrate_output
       ignore_errors: yes
 
@@ -232,11 +229,46 @@
         msg: "{{ migrate_output.stdout_lines }}"
       when: migrate_output is defined and migrate_output.stdout is defined
 
-    - name: Restart services after migration
+    # ------------------------------------------------------------------------
+    # 🔄 Down y Up final para aplicar cambios completamente
+    # ------------------------------------------------------------------------
+    - name: Final down after migrations
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml restart backend frontend queue-long queue-short scheduler
+        cmd: docker compose -f pwd.yml down
       args:
         chdir: "{{ project_dir }}/frappe_docker"
+      when: 
+        - site_check.rc == 0
+        - migrate_output is defined
+        - migrate_output.rc == 0
+      register: final_down_output
+
+    - name: Mostrar resultado del down final
+      ansible.builtin.debug:
+        msg: "{{ final_down_output.stdout_lines }}"
+      when: final_down_output is defined and final_down_output.stdout is defined
+
+    - name: Final up after migrations
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml up -d
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      when: 
+        - site_check.rc == 0
+        - migrate_output is defined
+        - migrate_output.rc == 0
+      register: final_up_output
+
+    - name: Mostrar resultado del up final
+      ansible.builtin.debug:
+        msg: "{{ final_up_output.stdout_lines }}"
+      when: final_up_output is defined and final_up_output.stdout is defined
+
+    - name: Wait for services to be ready after final restart
+      ansible.builtin.wait_for:
+        port: 8080
+        delay: 20
+        timeout: 180
       when: 
         - site_check.rc == 0
         - migrate_output is defined
