@@ -163,11 +163,26 @@
       changed_when: false
 
     # ------------------------------------------------------------------------
-    # 🚀 Levantar los servicios
+    # 🛑 Detener servicios para aplicar nueva imagen
     # ------------------------------------------------------------------------
-    - name: Deploy ERPNext stack using pwd.yml (force recreate if image was pulled)
+    - name: Stop all ERPNext services
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d {{ '--force-recreate' if pull_output.changed else '' }}
+        cmd: docker compose -f pwd.yml down
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      ignore_errors: yes
+      register: down_output
+
+    - name: Mostrar resultado del down
+      ansible.builtin.debug:
+        msg: "{{ down_output.stdout_lines }}"
+
+    # ------------------------------------------------------------------------
+    # 🚀 Levantar servicios con imagen actualizada
+    # ------------------------------------------------------------------------
+    - name: Deploy ERPNext stack using pwd.yml
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml up -d
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       register: up_output
