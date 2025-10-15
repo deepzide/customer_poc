@@ -6,7 +6,7 @@
     project_dir: /opt/erpnext
     repo_url: https://github.com/frappe/frappe_docker.git
     target_image: dcorps/deepzide:latest
-
+    site_name: frontend
 
   tasks:
     # ------------------------------------------------------------------------
@@ -142,11 +142,32 @@
         msg: "{{ sed_output.stdout_lines }}"
 
     # ------------------------------------------------------------------------
+    # 🐳 CRÍTICO: Pull de la imagen custom antes de deploy
+    # ------------------------------------------------------------------------
+    - name: Pull latest custom ERPNext image
+      ansible.builtin.command:
+        cmd: docker pull {{ target_image }}
+      register: pull_output
+      changed_when: "'Downloaded newer image' in pull_output.stdout or 'Digest:' in pull_output.stdout"
+
+    - name: Mostrar resultado del pull
+      ansible.builtin.debug:
+        msg: "{{ pull_output.stdout_lines }}"
+
+    - name: Check if containers are already running
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml ps -q
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: running_containers
+      changed_when: false
+
+    # ------------------------------------------------------------------------
     # 🚀 Levantar los servicios
     # ------------------------------------------------------------------------
-    - name: Deploy ERPNext stack using pwd.yml
+    - name: Deploy ERPNext stack using pwd.yml (force recreate if image was pulled)
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d
+        cmd: docker compose -f pwd.yml up -d {{ '--force-recreate' if pull_output.changed else '' }}
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       register: up_output
@@ -154,6 +175,57 @@
     - name: Mostrar salida del docker compose up
       ansible.builtin.debug:
         msg: "{{ up_output.stdout_lines }}"
+
+    # ------------------------------------------------------------------------
+    # 🔄 Ejecutar migraciones si el sitio existe
+    # ------------------------------------------------------------------------
+    - name: Wait for backend to be ready
+      ansible.builtin.wait_for:
+        port: 8080
+        delay: 15
+        timeout: 180
+      when: running_containers.stdout | length > 0
+
+    - name: Check if site exists
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml exec -T backend ls sites/{{ site_name }}
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      register: site_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Run migrations if site exists and image was updated
+      ansible.builtin.shell: |
+        echo "🔄 Ejecutando migraciones..."
+        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
+        echo "🧹 Limpiando caché..."
+        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} clear-cache
+        echo "🔨 Rebuilding assets..."
+        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} build
+        echo "✅ Migraciones completadas"
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      when: 
+        - site_check.rc == 0
+        - pull_output.changed or running_containers.stdout | length > 0
+      register: migrate_output
+      ignore_errors: yes
+
+    - name: Mostrar resultado de migraciones
+      ansible.builtin.debug:
+        msg: "{{ migrate_output.stdout_lines }}"
+      when: migrate_output is defined and migrate_output.stdout is defined
+
+    - name: Restart services after migration
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml restart backend frontend queue-long queue-short scheduler
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      when: 
+        - site_check.rc == 0
+        - migrate_output is defined
+        - migrate_output.rc == 0
 
     # ------------------------------------------------------------------------
     # 📋 Listar contenedores actuales
@@ -167,3 +239,17 @@
       ansible.builtin.debug:
         msg: "{{ docker_ps_output.stdout_lines }}"
 
+    # ------------------------------------------------------------------------
+    # 📊 Resumen final
+    # ------------------------------------------------------------------------
+    - name: Deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "✅ Deployment completado"
+          - "🖼️  Imagen: {{ target_image }}"
+          - "📦 Apps instaladas: {{ custom_apps | join(', ') }}"
+          - "🌐 Acceso: http://{{ ansible_host }}:8080"
+          - "👤 Usuario: Administrator"
+          - "🔑 Password: admin"
+          - "=========================================="
