@@ -1,7 +1,7 @@
 {
  "app": "Commit3",
  "charts": [],
- "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Efficcia Custom Test</span>\",\"col\":12}},{\"id\":\"tvCop1l0ws\",\"type\":\"card\",\"data\":{\"card_name\":\"Nueva Tarjeta\",\"col\":4}}]",
+ "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Efficcia Custom Test</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}}]",
  "creation": "2025-10-08 00:15:40.149017",
  "custom_blocks": [],
  "docstatus": 0,
@@ -14,28 +14,8 @@
  "is_hidden": 0,
  "label": "Commit3",
  "link_type": "DocType",
- "links": [
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Nueva Tarjeta",
-   "link_count": 1,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Addresses",
-   "link_count": 0,
-   "link_to": "Address",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  }
- ],
- "modified": "2025-10-08 00:25:26.686696",
+ "links": [],
+ "modified": "2025-10-16 15:10:55.290754",
  "modified_by": "Administrator",
  "module": "Efficcia Custom Test",
  "name": "Commit3",
@@ -43,7 +23,13 @@
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
- "quick_lists": [],
+ "quick_lists": [
+  {
+   "document_type": "Efficcia Doc",
+   "label": "Efficcia Doc List",
+   "quick_list_filter": "[]"
+  }
+ ],
  "roles": [],
  "sequence_id": 23.0,
  "shortcuts": [],
