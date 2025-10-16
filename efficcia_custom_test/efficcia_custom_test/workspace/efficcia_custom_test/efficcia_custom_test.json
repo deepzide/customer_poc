@@ -1,5 +1,5 @@
 {
- "app": "Commit3",
+ "app": "Efficcia Custom Test",
  "charts": [],
  "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Efficcia Custom Test</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}}]",
  "creation": "2025-10-08 00:15:40.149017",
@@ -12,13 +12,13 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "Commit3",
+ "label": "Efficcia Custom Test",
  "link_type": "DocType",
  "links": [],
- "modified": "2025-10-16 15:10:55.290754",
+ "modified": "2025-10-16 15:16:06.325051",
  "modified_by": "Administrator",
  "module": "Efficcia Custom Test",
- "name": "Commit3",
+ "name": "Efficcia Custom Test",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
@@ -33,6 +33,6 @@
  "roles": [],
  "sequence_id": 23.0,
  "shortcuts": [],
- "title": "Commit3",
+ "title": "Efficcia Custom Test",
  "type": "Workspace"
 }
