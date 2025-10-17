@@ -205,7 +205,7 @@
         msg: "{{ migrate_output.stdout_lines | default([]) }}"
 
     # ------------------------------------------------------------------------
-    # 🔨 Nuevo bloque: Rebuild seguro usando bash
+    # 🔨 Rebuild seguro usando bash
     # ------------------------------------------------------------------------
     - name: Rebuild assets (safe bash mode)
       ansible.builtin.shell: |
@@ -222,12 +222,18 @@
         msg: "{{ build_output.stdout_lines | default([]) }}"
 
     # ------------------------------------------------------------------------
-    # 🧩 Instalar apps custom si el sitio ya existe
+    # 🧩 Instalar apps requeridas (erpnext + custom)
     # ------------------------------------------------------------------------
-    - name: Ensure all custom apps are installed on existing site
+    - name: Ensure all required apps (erpnext + custom) are installed on existing site
       ansible.builtin.shell: |
+        all_apps="erpnext {{ custom_apps | join(' ') }}"
         installed=$(docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
-        for app in {{ custom_apps | join(' ') }}; do
+        
+        echo "🔎 Apps instaladas actualmente:"
+        echo "$installed"
+        echo "-----------------------------------"
+
+        for app in $all_apps; do
           if ! echo "$installed" | grep -q "$app"; then
             echo "⚙️ Instalando app faltante: $app"
             docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} install-app $app || true
@@ -289,8 +295,9 @@
           - "=========================================="
           - "✅ Deployment completado"
           - "🖼️ Imagen: {{ target_image }}"
-          - "📦 Apps instaladas: {{ custom_apps | join(', ') }}"
+          - "📦 Apps instaladas: erpnext, {{ custom_apps | join(', ') }}"
           - "🌐 Acceso: http://{{ ansible_host }}:8080"
           - "👤 Usuario: Administrator"
           - "🔑 Password: admin"
           - "=========================================="
+
