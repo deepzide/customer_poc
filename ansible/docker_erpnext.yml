@@ -80,7 +80,7 @@
         append: yes
 
     # ------------------------------------------------------------------------
-    # ⚙️ Clone ERPNext docker
+    # ⚙️ Clonar frappe_docker
     # ------------------------------------------------------------------------
     - name: Clone frappe_docker repository
       ansible.builtin.git:
@@ -105,17 +105,11 @@
     # ------------------------------------------------------------------------
     - name: Agregar apps al comando bench new-site
       ansible.builtin.shell: |
-        # Construir el fragmento de instalación de apps
         apps_flags=""
         for app in {{ custom_apps | join(' ') }}; do
           apps_flags="$apps_flags --install-app $app"
         done
-
-        # Agregar las apps custom después de --install-app erpnext (sin duplicar)
         sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
-
-        echo "✅ Se agregaron las apps al comando bench new-site:"
-        grep "bench new-site" {{ project_dir }}/frappe_docker/pwd.yml
       args:
         executable: /bin/bash
       register: add_apps_output
@@ -130,9 +124,6 @@
     - name: Replace frappe/erpnext image with custom image (any version)
       ansible.builtin.shell: |
         sed -i "s|frappe/erpnext:[^\"']*|{{ target_image }}|g" {{ project_dir }}/frappe_docker/pwd.yml
-        echo "✅ Imagen reemplazada. Contenido actual de pwd.yml:"
-        echo "-------------------------------------------------"
-        cat {{ project_dir }}/frappe_docker/pwd.yml
       args:
         executable: /bin/bash
       register: sed_output
@@ -142,7 +133,7 @@
         msg: "{{ sed_output.stdout_lines }}"
 
     # ------------------------------------------------------------------------
-    # 🐳 CRÍTICO: Pull de la imagen custom antes de deploy
+    # 🐳 Pull de la imagen custom antes del deploy
     # ------------------------------------------------------------------------
     - name: Pull latest custom ERPNext image
       ansible.builtin.command:
@@ -154,16 +145,8 @@
       ansible.builtin.debug:
         msg: "{{ pull_output.stdout_lines }}"
 
-    - name: Check if containers are already running
-      ansible.builtin.command:
-        cmd: docker compose -f pwd.yml ps -q
-      args:
-        chdir: "{{ project_dir }}/frappe_docker"
-      register: running_containers
-      changed_when: false
-
     # ------------------------------------------------------------------------
-    # 🛑 Detener servicios para aplicar nueva imagen
+    # 🛑 Detener servicios previos
     # ------------------------------------------------------------------------
     - name: Stop all ERPNext services
       ansible.builtin.command:
@@ -171,14 +154,9 @@
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       ignore_errors: yes
-      register: down_output
-
-    - name: Mostrar resultado del down
-      ansible.builtin.debug:
-        msg: "{{ down_output.stdout_lines }}"
 
     # ------------------------------------------------------------------------
-    # 🚀 Levantar servicios con imagen actualizada
+    # 🚀 Levantar stack actualizado
     # ------------------------------------------------------------------------
     - name: Deploy ERPNext stack using pwd.yml
       ansible.builtin.command:
@@ -192,7 +170,7 @@
         msg: "{{ up_output.stdout_lines }}"
 
     # ------------------------------------------------------------------------
-    # 🔄 Ejecutar migraciones si el sitio existe
+    # 🔄 Migraciones y rebuild de assets
     # ------------------------------------------------------------------------
     - name: Wait for backend to be ready
       ansible.builtin.wait_for:
@@ -209,15 +187,14 @@
       ignore_errors: yes
       changed_when: false
 
-    - name: Run migrations if site exists and image was updated
+    - name: Run migrations if site exists
       ansible.builtin.shell: |
         echo "🔄 Ejecutando migraciones..."
         docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
         echo "🧹 Limpiando caché..."
         docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} clear-cache
         echo "🔨 Rebuilding assets..."
-        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} build
-        echo "✅ Migraciones completadas"
+        docker compose -f pwd.yml exec -T backend bench build
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       when: site_check.rc == 0
@@ -226,77 +203,14 @@
 
     - name: Mostrar resultado de migraciones
       ansible.builtin.debug:
-        msg: "{{ migrate_output.stdout_lines }}"
-      when: migrate_output is defined and migrate_output.stdout is defined
+        msg: "{{ migrate_output.stdout_lines | default([]) }}"
 
     # ------------------------------------------------------------------------
-    # 🔄 Down y Up final para aplicar cambios completamente
+    # 🧩 Nuevo: instalación automática de apps custom si el sitio ya existe
     # ------------------------------------------------------------------------
-    - name: Final down after migrations
-      ansible.builtin.command:
-        cmd: docker compose -f pwd.yml down
-      args:
-        chdir: "{{ project_dir }}/frappe_docker"
-      when: 
-        - site_check.rc == 0
-        - migrate_output is defined
-        - migrate_output.rc == 0
-      register: final_down_output
+    - name: Ensure all custom apps are installed on existing site
+      ansible.builtin.shell: |
+        installed=$(docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
+        for app in {{ custom_apps | join(' ') }}; do
+          if ! echo "$installed" | grep -q "$app";
 
-    - name: Mostrar resultado del down final
-      ansible.builtin.debug:
-        msg: "{{ final_down_output.stdout_lines }}"
-      when: final_down_output is defined and final_down_output.stdout is defined
-
-    - name: Final up after migrations
-      ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d
-      args:
-        chdir: "{{ project_dir }}/frappe_docker"
-      when: 
-        - site_check.rc == 0
-        - migrate_output is defined
-        - migrate_output.rc == 0
-      register: final_up_output
-
-    - name: Mostrar resultado del up final
-      ansible.builtin.debug:
-        msg: "{{ final_up_output.stdout_lines }}"
-      when: final_up_output is defined and final_up_output.stdout is defined
-
-    - name: Wait for services to be ready after final restart
-      ansible.builtin.wait_for:
-        port: 8080
-        delay: 20
-        timeout: 180
-      when: 
-        - site_check.rc == 0
-        - migrate_output is defined
-        - migrate_output.rc == 0
-
-    # ------------------------------------------------------------------------
-    # 📋 Listar contenedores actuales
-    # ------------------------------------------------------------------------
-    - name: List running Docker containers
-      ansible.builtin.command:
-        cmd: docker ps
-      register: docker_ps_output
-
-    - name: Mostrar salida de docker ps
-      ansible.builtin.debug:
-        msg: "{{ docker_ps_output.stdout_lines }}"
-
-    # ------------------------------------------------------------------------
-    # 📊 Resumen final
-    # ------------------------------------------------------------------------
-    - name: Deployment summary
-      ansible.builtin.debug:
-        msg:
-          - "=========================================="
-          - "✅ Deployment completado"
-          - "🖼️  Imagen: {{ target_image }}"
-          - "📦 Apps instaladas: {{ custom_apps | join(', ') }}"
-          - "🌐 Acceso: http://{{ ansible_host }}:8080"
-          - "👤 Usuario: Administrator"
-          - "🔑 Password: admin"
-          - "=========================================="
