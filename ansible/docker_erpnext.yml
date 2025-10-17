@@ -112,10 +112,9 @@
         chdir: "{{ project_dir }}/frappe_docker"
 
     - name: Wait for DB to be ready
-      ansible.builtin.wait_for:
-        port: 3306
-        delay: 15
-        timeout: 120
+      ansible.builtin.pause:
+        seconds: 30
+      when: true
 
     # ------------------------------------------------------------------------
     # ⚡ Crear sitio si no existe
