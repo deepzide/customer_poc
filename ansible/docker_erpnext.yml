@@ -185,17 +185,17 @@
     # ------------------------------------------------------------------------
     # 🔁 Reinicio final
     # ------------------------------------------------------------------------
-    - name: Restart full stack
+    - name: Compose down
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml down && docker compose -f pwd.yml up -d
+        cmd: docker compose -f pwd.yml down
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
-    - name: Wait for frontend
-      ansible.builtin.wait_for:
-        port: 8080
-        delay: 15
-        timeout: 180
+    - name: Compose up
+      ansible.builtin.command:
+        cmd: docker compose -f pwd.yml up -d
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
 
     # ------------------------------------------------------------------------
     # 📊 Resumen
