@@ -107,7 +107,7 @@
 
     - name: Start base stack (db, redis)
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d db redis-cache redis-queue redis-socketio
+        cmd: docker compose -f pwd.yml up -d 
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
