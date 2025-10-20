@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted,erp_base]
 
     steps:
       # 1️⃣ Checkout repo
@@ -27,7 +27,7 @@ jobs:
       - name: Configure SSH access
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_ERPBASE }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
@@ -91,7 +91,7 @@ jobs:
           path: docker-compose.yaml
 
   ansible:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted,erp_base]
     needs: build
 
     steps:
@@ -105,29 +105,41 @@ jobs:
         with:
           name: docker-compose
           path: ./ansible/files/
-
-      # 3️⃣ Setup SSH key
-      - name: Setup SSH key from base64
+      - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY_PRIVATE }}" | base64 --decode > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
+          chmod 700 ~/.ssh
+          
+          # Decode base64 key and save it
+          echo "${{ secrets.SSH_KEY_PRIVATE }}" | base64 --decode > ~/.ssh/erpnext_deploy_key
+          chmod 600 ~/.ssh/erpnext_deploy_key
+          
+          # Add known host to avoid prompt
+          ssh-keyscan -H 5.78.106.78 >> ~/.ssh/known_hosts 2>/dev/null
+          
+          # Test SSH connection
+          echo "Testing SSH connection..."
+          ssh -i ~/.ssh/erpnext_deploy_key -o StrictHostKeyChecking=no root@5.78.106.78 "echo 'SSH connection successful!'"
 
-      # 4️⃣ Install Ansible
-      - name: Install Ansible
-        run: sudo apt-get install -y -qq ansible openssh-client
-
-      # 5️⃣ Create Ansible inventory dynamically
+      # 4️⃣ Create Ansible inventory
       - name: Create dynamic inventory
         run: |
+          SSH_KEY_PATH="${HOME}/.ssh/erpnext_deploy_key"
+          
           cat > ./ansible/inventory.ini <<EOF
           [erpnext]
-          5.161.88.178 ansible_user=root ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ConnectTimeout=10'
+          5.78.106.78 ansible_user=root ansible_ssh_private_key_file=${SSH_KEY_PATH}
           EOF
+          
+          echo "=== Generated Inventory ==="
+          cat ./ansible/inventory.ini
 
-      # 6️⃣ Run playbook for remote deployment 123
+      # 5️⃣ Test Ansible connection
+      - name: Test Ansible connection
+        run: |
+          ansible all -i ./ansible/inventory.ini -m ping
+
+      # 6️⃣ Run playbook for remote deployment
       - name: Deploy docker-compose via Ansible
         run: |
-          ansible-playbook -i ./ansible/inventory.ini ./ansible/docker_erpnext.yml
+          ansible-playbook -i ./ansible/inventory.ini ./ansible/docker_erpnext.yml -v
