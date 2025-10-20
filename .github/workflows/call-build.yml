@@ -16,6 +16,7 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
 
     steps:
       # 1️⃣ Checkout repo
@@ -26,7 +27,7 @@ jobs:
       - name: Configure SSH access
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KEY_PRIVATE }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
@@ -91,6 +92,7 @@ jobs:
 
   ansible:
     needs: build
+    runs-on: ubuntu-latest
 
     steps:
       # 1️⃣ Checkout repo
@@ -141,3 +143,4 @@ jobs:
       - name: Deploy docker-compose via Ansible
         run: |
           ansible-playbook -i ./ansible/inventory.ini ./ansible/docker_erpnext.yml -v
+
