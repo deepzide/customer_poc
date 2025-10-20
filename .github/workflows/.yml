@@ -16,7 +16,6 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted,erp_base]
 
     steps:
       # 1️⃣ Checkout repo
@@ -91,7 +90,6 @@ jobs:
           path: docker-compose.yaml
 
   ansible:
-    runs-on: [self-hosted,erp_base]
     needs: build
 
     steps:
