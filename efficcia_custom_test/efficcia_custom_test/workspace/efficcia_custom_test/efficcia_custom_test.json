@@ -12,7 +12,7 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "Efficcia Custom Test v3",
+ "label": "Efficcia Custom Test v4",
  "link_type": "DocType",
  "links": [],
  "modified": "2025-10-20 13:45:00.000000",
@@ -33,6 +33,6 @@
  "roles": [],
  "sequence_id": 23.0,
  "shortcuts": [],
- "title": "Efficcia Custom Test v3",
+ "title": "Efficcia Custom Test v4",
  "type": "Workspace"
 }
