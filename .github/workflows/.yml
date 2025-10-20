@@ -1,4 +1,4 @@
-name: Build & Deploy Custom ERPNext Image
+name:  Deploy to server
 
 on:
   push:
