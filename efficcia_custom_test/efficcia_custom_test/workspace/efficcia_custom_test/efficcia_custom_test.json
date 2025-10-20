@@ -1,7 +1,7 @@
 {
  "app": "Efficcia Custom Test",
  "charts": [],
- "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class='h4 text-success'>🚀 Build actualizado correctamente — v2</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}}]",
+ "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class='h4 text-success'>🚀 Build actualizado correctamente — v3</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}}]",
  "creation": "2025-10-08 00:15:40.149017",
  "custom_blocks": [],
  "docstatus": 0,
@@ -12,10 +12,10 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "Efficcia Custom Test v2",
+ "label": "Efficcia Custom Test v3",
  "link_type": "DocType",
  "links": [],
- "modified": "2025-10-20 13:30:00.000000",
+ "modified": "2025-10-20 13:45:00.000000",
  "modified_by": "Administrator",
  "module": "Efficcia Custom Test",
  "name": "Efficcia Custom Test",
@@ -33,7 +33,6 @@
  "roles": [],
  "sequence_id": 23.0,
  "shortcuts": [],
- "title": "Efficcia Custom Test v2",
+ "title": "Efficcia Custom Test v3",
  "type": "Workspace"
 }
-
