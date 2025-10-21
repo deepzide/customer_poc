@@ -22,9 +22,30 @@
     # ------------------------------------------------------------------------
     # 🐳 Instalación de Docker CE y Compose (oficial, robusto)
     # ------------------------------------------------------------------------
+    - name: Remove all existing Docker repository configurations
+      ansible.builtin.shell: |
+        rm -f /etc/apt/sources.list.d/docker.list
+        rm -f /etc/apt/sources.list.d/docker.list.save
+        rm -f /etc/apt/sources.list.d/archive_uri-*.list
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Remove old Docker GPG keys to avoid conflicts
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/share/keyrings/docker-archive-keyring.gpg
+      changed_when: false
+
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
+      register: apt_update
+      retries: 3
+      delay: 5
+      until: apt_update is success
 
     - name: Ensure dependencies are installed
       ansible.builtin.package:
@@ -38,11 +59,6 @@
           - lsb-release
         state: present
 
-    - name: Remove old Docker repository file (if exists)
-      ansible.builtin.file:
-        path: /etc/apt/sources.list.d/docker.list
-        state: absent
-
     - name: Create Docker GPG key directory
       ansible.builtin.file:
         path: /etc/apt/keyrings
@@ -54,15 +70,13 @@
         url: https://download.docker.com/linux/ubuntu/gpg
         dest: /etc/apt/keyrings/docker.asc
         mode: "0644"
+        force: yes
 
     - name: Add Docker repository to Apt sources
       ansible.builtin.apt_repository:
         repo: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
         filename: docker
-
-    - name: Update apt cache after adding Docker repository
-      ansible.builtin.apt:
         update_cache: yes
 
     - name: Install Docker and Docker Compose
@@ -238,4 +252,3 @@
           - "🌐 http://{{ ansible_host }}:8080"
           - "👤 Administrator / 🔑 {{ admin_password }}"
           - "=========================================="
-
