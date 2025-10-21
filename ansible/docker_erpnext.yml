@@ -60,13 +60,14 @@
       ansible.builtin.debug:
         msg: "Docker Compose instalado: {{ compose_version.stdout }}"
 
-    - name: Install additional dependencies
+    - name: Ensure dependencies are installed
       ansible.builtin.package:
         name:
           - bc
           - curl
           - expect
           - git
+          - ca-certificates
         state: present
 
     # ------------------------------------------------------------------------
