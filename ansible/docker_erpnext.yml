@@ -68,7 +68,6 @@
           - expect
           - git
         state: present
-        update_cache: yes
 
     # ------------------------------------------------------------------------
     # ⚙️ Clonar frappe_docker
