@@ -78,12 +78,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2️⃣ Download the docker-compose artifact
-      - name: Download docker-compose artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-compose
-          path: ./ansible/files/
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
