@@ -1,7 +1,7 @@
 {
   "app": "Efficcia Custom Test",
   "charts": [],
-  "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class='h4 text-success'>🚀 Build actualizado correctamente — v4</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}}]",
+  "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class='h4 text-success'>🚀 Build actualizado correctamente — v2</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}}]",
   "creation": "2025-10-08 00:15:40.149017",
   "custom_blocks": [],
   "docstatus": 0,
@@ -36,3 +36,4 @@
   "title": "v2",
   "type": "Workspace"
 }
+
