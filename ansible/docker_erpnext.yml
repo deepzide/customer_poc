@@ -20,74 +20,23 @@
         mode: "0755"
 
     # ------------------------------------------------------------------------
-    # 🐳 Instalación de Docker CE y Compose (oficial, robusto)
+    # 🐳 Instalación de Docker usando script oficial
     # ------------------------------------------------------------------------
-    - name: Remove all existing Docker repository configurations
+    - name: Check if Docker is already installed
+      ansible.builtin.command:
+        cmd: docker --version
+      register: docker_installed
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install Docker using official convenience script
       ansible.builtin.shell: |
-        rm -f /etc/apt/sources.list.d/docker.list
-        rm -f /etc/apt/sources.list.d/docker.list.save
-        rm -f /etc/apt/sources.list.d/archive_uri-*.list
+        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+        sh /tmp/get-docker.sh
+        rm /tmp/get-docker.sh
       args:
         executable: /bin/bash
-      changed_when: false
-
-    - name: Remove old Docker GPG keys to avoid conflicts
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /usr/share/keyrings/docker-archive-keyring.gpg
-      changed_when: false
-
-    - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: yes
-      register: apt_update
-      retries: 3
-      delay: 5
-      until: apt_update is success
-
-    - name: Ensure dependencies are installed
-      ansible.builtin.package:
-        name:
-          - bc
-          - curl
-          - expect
-          - git
-          - ca-certificates
-          - gnupg
-          - lsb-release
-        state: present
-
-    - name: Create Docker GPG key directory
-      ansible.builtin.file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: "0755"
-
-    - name: Download Docker's official GPG key
-      ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: "0644"
-        force: yes
-
-    - name: Add Docker repository to Apt sources
-      ansible.builtin.apt_repository:
-        repo: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-        state: present
-        filename: docker
-        update_cache: yes
-
-    - name: Install Docker and Docker Compose
-      ansible.builtin.package:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-        state: present
+      when: docker_installed.rc != 0
 
     - name: Ensure Docker service is enabled and started
       ansible.builtin.service:
@@ -100,6 +49,26 @@
         name: ubuntu
         groups: docker
         append: yes
+
+    - name: Verify Docker Compose is installed
+      ansible.builtin.command:
+        cmd: docker compose version
+      register: compose_version
+      changed_when: false
+
+    - name: Display Docker Compose version
+      ansible.builtin.debug:
+        msg: "Docker Compose instalado: {{ compose_version.stdout }}"
+
+    - name: Install additional dependencies
+      ansible.builtin.package:
+        name:
+          - bc
+          - curl
+          - expect
+          - git
+        state: present
+        update_cache: yes
 
     # ------------------------------------------------------------------------
     # ⚙️ Clonar frappe_docker
