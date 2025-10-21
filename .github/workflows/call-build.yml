@@ -69,13 +69,6 @@ jobs:
           cache-to: type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:cache,mode=max
 
 
-      # 🔟 Upload compose file as artifact
-      - name: Upload docker-compose artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-compose
-          path: docker-compose.yaml
-
   ansible:
     needs: build
     runs-on: ubuntu-latest
