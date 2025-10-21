@@ -1,0 +1,43 @@
+{
+ "app": "Efficcia Custom Test",
+ "charts": [],
+ "content": "[{\"id\":\"hRBF_UG9Hs\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4 text-success\\\">\ud83d\ude80 Build actualizado correctamente \u2014 v3</span>\",\"col\":12}},{\"id\":\"QSZyHVkdxH\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Efficcia Doc List\",\"col\":12}},{\"id\":\"0I_zKLJ-h5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Test Build Quicklist\",\"col\":12}}]",
+ "creation": "2025-10-08 00:15:40.149017",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "unhide",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "v5",
+ "link_type": "DocType",
+ "links": [],
+ "modified": "2025-10-21 16:19:33.793014",
+ "modified_by": "Administrator",
+ "module": "Efficcia Custom Test",
+ "name": "v5",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [
+  {
+   "document_type": "Efficcia Doc",
+   "label": "Efficcia Doc List",
+   "quick_list_filter": "[]"
+  },
+  {
+   "document_type": "Test Build",
+   "label": "Test Build Quicklist",
+   "quick_list_filter": "[]"
+  }
+ ],
+ "roles": [],
+ "sequence_id": 23.0,
+ "shortcuts": [],
+ "title": "v5",
+ "type": "Workspace"
+}
