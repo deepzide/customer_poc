@@ -116,7 +116,7 @@
     # ------------------------------------------------------------------------
     - name: Check if site exists
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml exec -T backend ls sites/{{ site_name }}
+        cmd: docker-compose -f pwd.yml exec -T backend ls sites/{{ site_name }}
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       register: site_check
@@ -164,7 +164,7 @@
     - name: Ensure all required apps (erpnext + custom) are installed
       ansible.builtin.shell: |
         all_apps="erpnext {{ custom_apps | join(' ') }}"
-        installed=$(docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
+        installed=$(docker-compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
         for app in $all_apps; do
           if ! echo "$installed" | grep -q "$app"; then
             echo "⚙️ Instalando app faltante: $app"
