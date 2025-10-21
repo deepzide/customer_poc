@@ -102,7 +102,7 @@
 
     - name: Start base stack (db, redis)
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d 
+        cmd: docker-compose -f pwd.yml up -d 
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
@@ -126,7 +126,7 @@
     - name: Create site if missing
       ansible.builtin.shell: |
         echo "🆕 Creando sitio {{ site_name }}..."
-        docker compose -f pwd.yml exec -T backend bench new-site {{ site_name }} \
+        docker-compose -f pwd.yml exec -T backend bench new-site {{ site_name }} \
           --mariadb-root-password 123 \
           --admin-password {{ admin_password }} \
           --install-app erpnext \
@@ -146,14 +146,14 @@
     # ------------------------------------------------------------------------
     - name: Run migrations
       ansible.builtin.shell: |
-        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
+        docker-compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       when: site_check.rc == 0 or create_site_output.rc == 0
 
     - name: Rebuild assets (safe bash mode)
       ansible.builtin.shell: |
-        docker compose -f pwd.yml exec -T backend /bin/bash -c "bench build || (echo '⚠️ Fallo en build, limpiando cache...' && bench clear-cache)"
+        docker-compose -f pwd.yml exec -T backend /bin/bash -c "bench build || (echo '⚠️ Fallo en build, limpiando cache...' && bench clear-cache)"
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       when: site_check.rc == 0 or create_site_output.rc == 0
@@ -168,7 +168,7 @@
         for app in $all_apps; do
           if ! echo "$installed" | grep -q "$app"; then
             echo "⚙️ Instalando app faltante: $app"
-            docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} install-app $app || true
+            docker-compose -f pwd.yml exec -T backend bench --site {{ site_name }} install-app $app || true
           else
             echo "✅ App ya instalada: $app"
           fi
@@ -182,13 +182,13 @@
     # ------------------------------------------------------------------------
     - name: Compose down
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml down
+        cmd: docker-compose -f pwd.yml down
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
     - name: Compose up
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d
+        cmd: docker-compose -f pwd.yml up -d
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
