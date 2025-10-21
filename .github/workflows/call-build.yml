@@ -64,7 +64,7 @@ jobs:
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-15
             APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:cache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:cache,mode=max
 
 
