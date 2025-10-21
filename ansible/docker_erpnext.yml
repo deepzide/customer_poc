@@ -19,29 +19,44 @@
         state: directory
         mode: "0755"
 
-    - name: Ensure dependencies are installed
+    # ------------------------------------------------------------------------
+    # 🐳 Instalación robusta de Docker CE y Compose
+    # ------------------------------------------------------------------------
+    - name: Ensure dependencies for Docker are installed
       ansible.builtin.apt:
         name:
-          - bc
-          - curl
-          - expect
-          - git
           - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - git
+          - bc
+          - expect
         state: present
         update_cache: yes
 
-    # ------------------------------------------------------------------------
-    # 🐳 Instalación de Docker y Docker Compose
-    # ------------------------------------------------------------------------
-    - name: Install Docker and Docker Compose
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker CE and Compose plugin
       ansible.builtin.apt:
         name:
-          - docker.io
-          - docker-compose
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
         state: present
         update_cache: yes
 
-    - name: Ensure Docker service is started
+    - name: Ensure Docker service is enabled and started
       ansible.builtin.service:
         name: docker
         state: started
@@ -102,7 +117,7 @@
 
     - name: Start base stack (db, redis)
       ansible.builtin.command:
-        cmd: docker-compose -f pwd.yml up -d 
+        cmd: docker compose -f pwd.yml up -d 
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
@@ -116,7 +131,7 @@
     # ------------------------------------------------------------------------
     - name: Check if site exists
       ansible.builtin.command:
-        cmd: docker-compose -f pwd.yml exec -T backend ls sites/{{ site_name }}
+        cmd: docker compose -f pwd.yml exec -T backend ls sites/{{ site_name }}
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       register: site_check
@@ -126,7 +141,7 @@
     - name: Create site if missing
       ansible.builtin.shell: |
         echo "🆕 Creando sitio {{ site_name }}..."
-        docker-compose -f pwd.yml exec -T backend bench new-site {{ site_name }} \
+        docker compose -f pwd.yml exec -T backend bench new-site {{ site_name }} \
           --mariadb-root-password 123 \
           --admin-password {{ admin_password }} \
           --install-app erpnext \
@@ -146,14 +161,14 @@
     # ------------------------------------------------------------------------
     - name: Run migrations
       ansible.builtin.shell: |
-        docker-compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
+        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       when: site_check.rc == 0 or create_site_output.rc == 0
 
     - name: Rebuild assets (safe bash mode)
       ansible.builtin.shell: |
-        docker-compose -f pwd.yml exec -T backend /bin/bash -c "bench build || (echo '⚠️ Fallo en build, limpiando cache...' && bench clear-cache)"
+        docker compose -f pwd.yml exec -T backend /bin/bash -c "bench build || (echo '⚠️ Fallo en build, limpiando cache...' && bench clear-cache)"
       args:
         chdir: "{{ project_dir }}/frappe_docker"
       when: site_check.rc == 0 or create_site_output.rc == 0
@@ -164,11 +179,11 @@
     - name: Ensure all required apps (erpnext + custom) are installed
       ansible.builtin.shell: |
         all_apps="erpnext {{ custom_apps | join(' ') }}"
-        installed=$(docker-compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
+        installed=$(docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
         for app in $all_apps; do
           if ! echo "$installed" | grep -q "$app"; then
             echo "⚙️ Instalando app faltante: $app"
-            docker-compose -f pwd.yml exec -T backend bench --site {{ site_name }} install-app $app || true
+            docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} install-app $app || true
           else
             echo "✅ App ya instalada: $app"
           fi
@@ -182,13 +197,13 @@
     # ------------------------------------------------------------------------
     - name: Compose down
       ansible.builtin.command:
-        cmd: docker-compose -f pwd.yml down
+        cmd: docker compose -f pwd.yml down
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
     - name: Compose up
       ansible.builtin.command:
-        cmd: docker-compose -f pwd.yml up -d
+        cmd: docker compose -f pwd.yml up -d
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
