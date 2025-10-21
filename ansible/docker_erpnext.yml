@@ -9,9 +9,6 @@
     site_name: frontend
     admin_password: admin  # puedes cambiarla si quieres
 
-  roles:
-    - geerlingguy.docker  # Instala Docker y Docker Compose automáticamente
-
   tasks:
     # ------------------------------------------------------------------------
     # 🗂️ Preparación del servidor
@@ -23,7 +20,7 @@
         mode: "0755"
 
     - name: Ensure dependencies are installed
-      ansible.builtin.package:
+      ansible.builtin.apt:
         name:
           - bc
           - curl
@@ -31,6 +28,24 @@
           - git
           - ca-certificates
         state: present
+        update_cache: yes
+
+    # ------------------------------------------------------------------------
+    # 🐳 Instalación de Docker y Docker Compose
+    # ------------------------------------------------------------------------
+    - name: Install Docker and Docker Compose
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker service is started
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
 
     - name: Add ubuntu user to docker group
       ansible.builtin.user:
