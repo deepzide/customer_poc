@@ -116,11 +116,11 @@ jobs:
           chmod 600 ~/.ssh/erpnext_deploy_key
           
           # Add known host to avoid prompt
-          ssh-keyscan -H 5.78.106.78 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H 91.98.90.245 >> ~/.ssh/known_hosts 2>/dev/null
           
           # Test SSH connection
           echo "Testing SSH connection..."
-          ssh -i ~/.ssh/erpnext_deploy_key -o StrictHostKeyChecking=no root@5.78.106.78 "echo 'SSH connection successful!'"
+          ssh -i ~/.ssh/erpnext_deploy_key -o StrictHostKeyChecking=no root@91.98.90.245 "echo 'SSH connection successful!'"
 
       # 4️⃣ Create Ansible inventory
       - name: Create dynamic inventory
