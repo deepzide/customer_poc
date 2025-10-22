@@ -130,7 +130,7 @@
           sleep 5
         done
       args:
-      chdir: "{{ project_dir }}/frappe_docker"
+        chdir: "{{ project_dir }}/frappe_docker"
 
 
     # ------------------------------------------------------------------------

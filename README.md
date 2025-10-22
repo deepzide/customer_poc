@@ -47,6 +47,7 @@ erpnext
 - [ ] **Prueba de Disaster recovery**
 - [ ] **Agregar DNS a cada IP** 
 - [ ] **Buscar manera de que los developers puedan ver los logs (++ pipeline)**
+- [ ] **Disminuir tiempo del pipeline**
 
 ### Reglas de Operación
 
