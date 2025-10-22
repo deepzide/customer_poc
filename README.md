@@ -1,10 +1,13 @@
 # ERP Base
 
-#### `apps.json`
-Define las aplicaciones que se instalarán en el entorno con sus repositorios y branches:
+A streamlined ERP deployment template for managing Frappe/ERPNext applications and custom developments.
 
-EX:
+## Configuration Files
 
+### [`apps.json`](apps.json)
+Defines the applications to be installed with their repositories and branches.
+
+**Example:**
 ```json
 [
   {
@@ -12,22 +15,24 @@ EX:
     "branch": "version-15"
   },
   {
-    "url": "https://github.com/deepzide/erp_base.git", 
+    "url": "https://github.com/deepzide/erp_base.git",
     "branch": "main"
   }
 ]
 ```
 
-#### `custom.txt`
-Lista las aplicaciones personalizadas que se instalarán, una por línea:
+### [`custom.txt`](custom.txt)
+Lists custom applications to be installed (one per line).
 
+**Example:**
 ```
 erpnext
 efficcia_custom_test
 ```
-Nota: El desarrollo custom debe estar en apps.json y en custom.txt
 
-## Tareas Pendientes
+**Note:** Custom development must be specified in both [`apps.json`](apps.json) and [`custom.txt`](custom.txt).
+
+
 
 ### Próximos Pasos
 
@@ -37,6 +42,7 @@ Nota: El desarrollo custom debe estar en apps.json y en custom.txt
 - [ ] **Realizar Snapshoot de la instancia en produccion antes de hacer un cambio**
 - [ ] **Hacer script de backup de la base de datos hacia un bucket S3 para mayor seguridad**
 - [ ] **Prueba de Disaster recovery**
+- [ ] **Agregar DNS a cada IP** 
 
 ### Reglas de Operación
 
@@ -45,3 +51,12 @@ Para mantener la estabilidad y seguridad del entorno de producción:
 - **Horario Laboral**: No modificar producción en horario laboral
 - **Backup Obligatorio**: Tomar backup completo de la instancia antes de realizar cualquier cambio en producción
 - **Ventana de Mantenimiento**: Los cambios en producción deben realizarse fuera del horario laboral o durante ventanas de mantenimiento programadas
+
+
+## Operational Guidelines
+
+To ensure production environment stability and security:
+
+- **Working Hours:** Avoid production modifications during business hours
+- **Mandatory Backup:** Complete instance backup required before any production changes
+- **Maintenance Windows:** Production changes must occur outside business hours or during scheduled maintenance
