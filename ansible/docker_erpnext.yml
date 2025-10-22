@@ -123,9 +123,15 @@
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
-    - name: Wait for DB to be ready
-      ansible.builtin.pause:
-        seconds: 30
+    - name: Wait until MariaDB is ready
+      ansible.builtin.shell: |
+        until docker compose -f pwd.yml exec -T db mysqladmin ping -h db --silent; do
+          echo "⏳ Esperando que MariaDB inicie..."
+          sleep 5
+        done
+      args:
+      chdir: "{{ project_dir }}/frappe_docker"
+
 
     # ------------------------------------------------------------------------
     # ⚡ Crear sitio si no existe
