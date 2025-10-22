@@ -22,7 +22,7 @@ Defines the applications to be installed with their repositories and branches.
 ```
 
 ### [`custom.txt`](custom.txt)
-Lists custom applications to be installed (one per line).
+ADD custom applications to be installed (one per line).
 
 **Example:**
 ```
@@ -38,11 +38,12 @@ erpnext
 
 ### Próximos Pasos
 
+- [ ] **Escoger una version de frappe fija. Cuando se actualiza a un realease grande se reinicia el proceso de setup** 
 - [ ] **Prueba de Custom App**: Hacer una PoC con este repositorio
-- [ ] **Inicio de Proyecto Cliente**: Empezar con el proyecto del cliente, siguiendo el flujo de trabajo de fork de repositorios
+- [ ] **Inicio de Proyecto Cliente**: Empezar con el proyecto del cliente
 - [ ] **Definir rama de production**
 - [ ] **Realizar Snapshoot de la instancia en produccion antes de hacer un cambio**
-- [ ] **Hacer script de backup de la base de datos hacia un bucket S3 para mayor seguridad**
+- [ ] **Hacer script de backup de la base de datos hacia un bucket S3 (AWS) para mayor seguridad**
 - [ ] **Prueba de Disaster recovery**
 - [ ] **Agregar DNS a cada IP** 
 
