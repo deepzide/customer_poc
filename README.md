@@ -15,8 +15,8 @@ Defines the applications to be installed with their repositories and branches.
     "branch": "version-15"
   },
   {
-    "url": "https://github.com/deepzide/erp_base.git",
-    "branch": "main"
+    "url": "https://github.com/deepzide/<REPO>.git",
+    "branch": "<BRANCH>"
   }
 ]
 ```
@@ -27,10 +27,12 @@ Lists custom applications to be installed (one per line).
 **Example:**
 ```
 erpnext
-efficcia_custom_test
+<DEV_CUSTOM>
 ```
 
-**Note:** Custom development must be specified in both [`apps.json`](apps.json) and [`custom.txt`](custom.txt).
+**Important:** When adding custom development, both configuration files must be updated:
+- Add the repository URL and branch to [`apps.json`](apps.json)
+- Add the application name to [`custom.txt`](custom.txt)
 
 
 
