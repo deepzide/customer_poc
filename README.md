@@ -46,6 +46,7 @@ erpnext
 - [ ] **Hacer script de backup de la base de datos hacia un bucket S3 (AWS) para mayor seguridad**
 - [ ] **Prueba de Disaster recovery**
 - [ ] **Agregar DNS a cada IP** 
+- [ ] **Buscar manera de que los developers puedan ver los logs (++ pipeline)**
 
 ### Reglas de Operación
 
