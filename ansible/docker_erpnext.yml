@@ -23,11 +23,11 @@
     # 🐳 Instalación de Docker usando script oficial
     # ------------------------------------------------------------------------
     - name: Check if Docker is already installed
-      ansible.builtin.command: docker --version
+      ansible.builtin.command:
+        cmd: docker --version
       register: docker_installed
       ignore_errors: yes
       changed_when: false
-      failed_when: false
 
     - name: Install Docker using official convenience script
       ansible.builtin.shell: |
@@ -44,16 +44,6 @@
         state: started
         enabled: yes
 
-    # ✅ Esperar que Docker esté completamente operativo
-    - name: Wait for Docker service to be ready
-      ansible.builtin.shell: |
-        until systemctl is-active --quiet docker; do
-          echo "⏳ Esperando que Docker arranque..."
-          sleep 3
-        done
-        echo "✅ Docker listo."
-      changed_when: false
-
     - name: Add ubuntu user to docker group
       ansible.builtin.user:
         name: ubuntu
@@ -61,7 +51,8 @@
         append: yes
 
     - name: Verify Docker Compose is installed
-      ansible.builtin.command: docker compose version
+      ansible.builtin.command:
+        cmd: docker compose version
       register: compose_version
       changed_when: false
 
@@ -123,37 +114,24 @@
     # 🐳 Pull de la imagen custom y levantar stack
     # ------------------------------------------------------------------------
     - name: Pull latest custom ERPNext image
-      ansible.builtin.command: docker pull {{ target_image }}
+      ansible.builtin.command:
+        cmd: docker pull {{ target_image }}
 
     - name: Start base stack (db, redis)
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d
+        cmd: docker compose -f pwd.yml up -d 
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
-    # ✅ Espera robusta para MariaDB (hasta 10 min)
     - name: Wait until MariaDB is ready
       ansible.builtin.shell: |
-        echo "⏳ Esperando que MariaDB acepte conexiones..."
-        for i in {1..120}; do  # 120 intentos × 5 s = 10 min
-          if docker compose -f pwd.yml exec -T db mysqladmin ping -h db --silent; then
-            echo "✅ MariaDB lista."
-            exit 0
-          fi
-          echo "🔁 Intento $i: MariaDB aún no responde..."
+        until docker compose -f pwd.yml exec -T db mysqladmin ping -h db --silent; do
+          echo "⏳ Esperando que MariaDB inicie..."
           sleep 5
         done
-        echo "⚠️ MariaDB no respondió tras 10 min. Continuando de todas formas..."
-        exit 0
       args:
         chdir: "{{ project_dir }}/frappe_docker"
-      changed_when: false
-      failed_when: false
 
-    # ✅ Pausa adicional para que el backend termine de iniciar
-    - name: Give backend container a few seconds to finish startup
-      ansible.builtin.pause:
-        seconds: 20
 
     # ------------------------------------------------------------------------
     # ⚡ Crear sitio si no existe
