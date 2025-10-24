@@ -66,6 +66,10 @@ jobs:
             --build-arg=APPS_JSON_BASE64="${{ secrets.APPS_JSON_BASE64 }}" \
             --tag=${{ secrets.DOCKER_USER }}/deepzide:latest \
             --file=./frappe_docker/images/layered/Containerfile .
+      - name: Push the Existing Image to Registry
+        run: |
+            echo "Iniciando push de ${{ secrets.DOCKER_USER }}/deepzide:latest"
+            docker push ${{ secrets.DOCKER_USER }}/deepzide:latest
 
 
   ansible:
