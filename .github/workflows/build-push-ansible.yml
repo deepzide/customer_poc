@@ -58,18 +58,14 @@ jobs:
 
       # 9️⃣ Generate compose.yaml with custom image
       # 9️⃣ Generate compose.yaml with custom image
-      - name: Build and push custom ERPNext image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frappe_docker
-          file: ./frappe_docker/images/layered/Containerfile
-          push: true
-          tags: ${{ secrets.DOCKER_USER }}/deepzide:latest
-          no-cache: true  # ← Solo esto mientras desarrollas
-          build-args: |
-            FRAPPE_PATH=https://github.com/frappe/frappe
-            FRAPPE_BRANCH=version-15
-            APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
+      - name: Build layered image
+        run: |
+          docker build \
+            --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
+            --build-arg=FRAPPE_BRANCH=version-15 \
+            --build-arg=APPS_JSON_BASE64="${{ secrets.APPS_JSON_BASE64 }}" \
+            --tag=custom:15 \
+            --file=images/layered/Containerfile .
 
 
   ansible:
