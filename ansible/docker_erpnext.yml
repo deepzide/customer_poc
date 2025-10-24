@@ -167,12 +167,12 @@
     # 🔄 Migraciones y build
     # ------------------------------------------------------------------------
     # 🧩 NUEVO PASO: Limpiar caches para prevenir el KeyError antes de migrar
-    - name: Clear cache before migrations
-      ansible.builtin.shell: |
-        docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} clear-cache
-      args:
-        chdir: "{{ project_dir }}/frappe_docker"
-      when: site_check.rc == 0 or create_site_output.rc == 0
+    #- name: Clear cache before migrations
+      #ansible.builtin.shell: |
+        #docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} clear-cache
+      #args:
+        #chdir: "{{ project_dir }}/frappe_docker"
+      #when: site_check.rc == 0 or create_site_output.rc == 0
       
     - name: Run migrations
       ansible.builtin.shell: |
