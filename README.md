@@ -49,7 +49,7 @@ erpnext
 - [ ] **Buscar manera de que los developers puedan ver los logs (++ pipeline)**
 - [ ] **Disminuir tiempo del pipeline**
 
-### Reglas de Operación
+### Reglas de Operacion
 
 Para mantener la estabilidad y seguridad del entorno de producción:
 
