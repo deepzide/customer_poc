@@ -135,16 +135,6 @@
       ignore_errors: yes
       changed_when: false
 
-    # Workaround: Temporarily disable custom_app during site creation
-    - name: Temporarily disable custom_app
-      ansible.builtin.shell: |
-        echo "🔄 Deshabilitando temporalmente custom_app..."
-        docker compose -f pwd.yml exec -T backend mv /home/frappe/frappe-bench/apps/custom_app /home/frappe/frappe-bench/apps/custom_app.disabled || true
-      args:
-        chdir: "{{ project_dir }}/frappe_docker"
-      when: site_check.rc != 0
-      ignore_errors: yes
-
     - name: Create site if missing
       ansible.builtin.shell: |
         echo "🆕 Creando sitio {{ site_name }}..."
@@ -157,15 +147,6 @@
         chdir: "{{ project_dir }}/frappe_docker"
       when: site_check.rc != 0
       register: create_site_output
-      ignore_errors: yes
-
-    - name: Re-enable custom_app after site creation
-      ansible.builtin.shell: |
-        echo "🔄 Rehabilitando custom_app..."
-        docker compose -f pwd.yml exec -T backend mv /home/frappe/frappe-bench/apps/custom_app.disabled /home/frappe/frappe-bench/apps/custom_app || true
-      args:
-        chdir: "{{ project_dir }}/frappe_docker"
-      when: site_check.rc != 0
       ignore_errors: yes
 
     - name: Mostrar resultado de creación
