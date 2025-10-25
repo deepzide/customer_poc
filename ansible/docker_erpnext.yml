@@ -7,7 +7,7 @@
     repo_url: https://github.com/frappe/frappe_docker.git
     target_image: dcorps/deepzide:latest
     site_name: frontend
-    admin_password: qwe  # puedes cambiarla si quieres
+    admin_password: admin  # puedes cambiarla si quieres
 
   tasks:
     # ------------------------------------------------------------------------
@@ -225,5 +225,5 @@
           - "🖼️ Imagen: {{ target_image }}"
           - "📦 Apps: erpnext, {{ custom_apps | join(', ') }}"
           - "🌐 http://{{ ansible_host }}:8080"
-          - "👤 qwe@gmail.com / 🔑 {{ admin_password }}"
+          - "👤 Administrator / 🔑 {{ admin_password }}"
           - "=========================================="
