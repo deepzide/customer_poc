@@ -57,18 +57,18 @@ jobs:
           
           # BLOQUE DE REEMPLAZO: ¡¡¡Los '#' internos AHORA ESTÁN ESCAPADOS ('\#')!!!
           REPLACEMENT_BLOCK="\
-\n\
-\# ----------------------------------------------------------------------\n\
-\# [CAPA CORTA - INYECCIÓN CUSTOM]\n\
-\# ----------------------------------------------------------------------\n\
-COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
-\n\
-USER frappe\n\
-WORKDIR /home/frappe/frappe-bench\n\
-RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
-\n\
-\# Re-insertar la línea original del ANCLA\n\
-FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
+          \n\
+          \# ----------------------------------------------------------------------\n\
+          \# [CAPA CORTA - INYECCIÓN CUSTOM]\n\
+          \# ----------------------------------------------------------------------\n\
+          COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
+          \n\
+          USER frappe\n\
+          WORKDIR /home/frappe/frappe-bench\n\
+          RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
+          \n\
+          \# Re-insertar la línea original del ANCLA\n\
+          FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
 
           # Comando de sustitución (s) usando '#' como delimitador
           sed -i.bak "s#$ANCHOR#$REPLACEMENT_BLOCK#g" $CFG_FILE
