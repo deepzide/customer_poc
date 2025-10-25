@@ -53,9 +53,9 @@ jobs:
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
-          
-          # Bloque a inyectar, definido con un literal block scalar (clave para evitar errores de YAML)
-          INJECTION_BLOCK="
+
+          # Bloque a inyectar (uso de heredoc seguro para preservar saltos de línea)
+          INJECTION_BLOCK=$(cat <<'EOF'
 # ----------------------------------------------------------------------
 # [CAPA CORTA - INYECCIÓN CUSTOM]
 # Esta capa rompe el cache si el contenido de ./custom_app cambia.
@@ -65,13 +65,17 @@ COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME
 USER frappe
 WORKDIR /home/frappe/frappe-bench
 RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps
-"
-          # El comando sed inserta el bloque ANTES de la línea que limpia los archivos .git.
-          # Usamos un truco de sed para pasar el bloque multilínea de forma segura.
-          # Esto resuelve los errores de sintaxis en el shell.
-          sed -i -e '/^.*find apps -mindepth 1 -path "\*\/.*\.git" | xargs rm -fr/i \
-'"$INJECTION_BLOCK" $CFG_FILE
-        
+EOF
+)
+
+          # Insertar el bloque ANTES de la línea que limpia los .git dentro del Containerfile.
+          # Usamos awk para evitar problemas con el quoting multilínea.
+          awk -v block="$INJECTION_BLOCK" '
+            BEGIN { inserted=0 }
+            /find apps -mindepth 1 -path/ && !inserted { print block; inserted=1 }
+            { print }
+          ' "$CFG_FILE" > "${CFG_FILE}.tmp" && mv "${CFG_FILE}.tmp" "$CFG_FILE"
+
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -88,9 +92,9 @@ RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps
         uses: docker/build-push-action@v5
         with:
           # Usamos el directorio raíz como contexto para que el COPY pueda encontrar './custom_app'
-          context: . 
+          context: .
           file: ./frappe_docker/images/layered/Containerfile
-          push: true 
+          push: true
           tags: ${{ secrets.DOCKER_USER }}/deepzide:latest
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
@@ -115,14 +119,14 @@ RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          
+
           # Decode base64 key and save it
           echo "${{ secrets.SSH_KEY_PRIVATE }}" | base64 --decode > ~/.ssh/erpnext_deploy_key
           chmod 600 ~/.ssh/erpnext_deploy_key
-          
+
           # Add known host to avoid prompt
           ssh-keyscan -H ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
-          
+
           # Test SSH connection
           echo "Testing SSH connection..."
           ssh -i ~/.ssh/erpnext_deploy_key -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} "echo 'SSH connection successful!'"
@@ -131,12 +135,12 @@ RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps
       - name: Create dynamic inventory
         run: |
           SSH_KEY_PATH="${HOME}/.ssh/erpnext_deploy_key"
-          
+
           cat > ./ansible/inventory.ini <<EOF
-          [erpnext]
-          ${{ env.SERVER_IP }} ansible_user=root ansible_ssh_private_key_file=${SSH_KEY_PATH}
-          EOF
-          
+[erpnext]
+${{ env.SERVER_IP }} ansible_user=root ansible_ssh_private_key_file=${SSH_KEY_PATH}
+EOF
+
           echo "=== Generated Inventory ==="
           cat ./ansible/inventory.ini
 
