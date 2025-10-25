@@ -73,7 +73,7 @@ jobs:
 
           USER frappe
           WORKDIR /home/frappe/frappe-bench
-          #RUN bench install-app $APP_NAME
+          RUN bench install-app $APP_NAME
 
           EOF
 
