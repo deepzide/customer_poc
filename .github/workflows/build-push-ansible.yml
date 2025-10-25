@@ -46,16 +46,17 @@ jobs:
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
-      # 4.1️⃣ Inyectar código custom en el Containerfile (CORRECCIÓN DE ESCAPE DE DELIMITADOR)
+      # 4.1️⃣ Inyectar código custom en el Containerfile (CORRECCIÓN DE ESCAPE DE SED)
       - name: Inject custom app installation into Containerfile
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
           
-          # ANCLA: La línea 'FROM' (escapar '$' para el shell)
-          ANCHOR="^FROM frappe/base:\$\{FRAPPE_BRANCH\} AS backend"
+          # ANCLA: ¡¡¡ESCAPAMOS '$', '{' y '}' para SED!!!
+          # Esto evita que sed interprete '{' y '}' como comandos de rango.
+          ANCHOR="^FROM frappe/base:\\$\\{FRAPPE_BRANCH\\} AS backend"
           
-          # BLOQUE DE REEMPLAZO: ¡¡¡Los '#' internos AHORA ESTÁN ESCAPADOS ('\#')!!!
+          # BLOQUE DE REEMPLAZO: Escapamos los '#' internos.
           REPLACEMENT_BLOCK="\
           \n\
           \# ----------------------------------------------------------------------\n\
@@ -67,7 +68,7 @@ jobs:
           WORKDIR /home/frappe/frappe-bench\n\
           RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
           \n\
-          \# Re-insertar la línea original del ANCLA\n\
+          \# Re-insertar la línea original del ANCLA (con $ escapado para el shell)\n\
           FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
 
           # Comando de sustitución (s) usando '#' como delimitador
@@ -107,7 +108,7 @@ jobs:
             APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
           cache-from: |
             type=gha
-            type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
+            type:registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
           cache-to: type=gha,mode=max
 
   ansible:
