@@ -68,7 +68,17 @@ jobs:
           USER frappe\
           WORKDIR /home/frappe/frappe-bench\
           RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps" $CFG_FILE
-        
+
+
+      # 4.2️⃣ DEBUG: Mostrar Containerfile modificado
+      - name: Show modified Containerfile
+        run: |
+          echo "====================================================="
+          echo "CONTENIDO DEL Containerfile DESPUÉS DE LA INYECCIÓN"
+          echo "====================================================="
+          cat ./frappe_docker/images/layered/Containerfile
+          echo "====================================================="
+          
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
