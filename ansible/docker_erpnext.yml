@@ -5,9 +5,9 @@
   vars:
     project_dir: /opt/erpnext
     repo_url: https://github.com/frappe/frappe_docker.git
-    target_image: dcorps/deepzide:latest
+    target_image: dcorps/deepzide:latest # Asegúrate de que esta imagen fue reconstruida sin 'bench install-app' en el Dockerfile
     site_name: frontend
-    admin_password: admin  # puedes cambiarla si quieres
+    admin_password: admin  # ¡Cambia esta contraseña en un entorno real!
 
   tasks:
     # ------------------------------------------------------------------------
@@ -92,7 +92,7 @@
         msg: "Apps leídas (sin duplicar erpnext): {{ custom_apps }}"
 
     # ------------------------------------------------------------------------
-    # ✏️ Modificar imagen y new-site
+    # ✏️ Modificar imagen
     # ------------------------------------------------------------------------
     - name: Replace frappe/erpnext image with custom image
       ansible.builtin.shell: |
@@ -100,15 +100,19 @@
       args:
         executable: /bin/bash
 
-    - name: Agregar apps al comando bench new-site
-      ansible.builtin.shell: |
-        apps_flags=""
-        for app in {{ custom_apps | join(' ') }}; do
-          apps_flags="$apps_flags --install-app $app"
-        done
-        sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
-      args:
-        executable: /bin/bash
+    # ------------------------------------------------------------------------
+    # ❌ Tarea Comentada: La instalación de apps se maneja más tarde en el runtime
+    # ------------------------------------------------------------------------
+    # - name: Agregar apps al comando bench new-site
+    #   ansible.builtin.shell: |
+    #     apps_flags=""
+    #     for app in {{ custom_apps | join(' ') }}; do
+    #       apps_flags="$apps_flags --install-app $app"
+    #     done
+    #     # ESTA LÍNEA DE SED SE COMENTA/ELIMINA PARA EVITAR LA INSTALACIÓN DOBLE O FALLOS
+    #     # sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
+    #   args:
+    #     executable: /bin/bash
 
     # ------------------------------------------------------------------------
     # 🐳 Pull de la imagen custom y levantar stack
@@ -148,6 +152,7 @@
     - name: Create site if missing
       ansible.builtin.shell: |
         echo "🆕 Creando sitio {{ site_name }}..."
+        # Solo se instala erpnext aquí para garantizar el éxito de la creación del sitio
         docker compose -f pwd.yml exec -T backend bench new-site {{ site_name }} \
           --mariadb-root-password 123 \
           --admin-password {{ admin_password }} \
@@ -167,7 +172,6 @@
     # 🔄 Migraciones y build
     # ------------------------------------------------------------------------
     
-    # 🧩 NUEVO PASO: Limpiar caches para prevenir el KeyError antes de migrar
     - name: Clear cache before migrations
       ansible.builtin.shell: |
         docker compose -f pwd.yml exec -T backend bench clear-cache
@@ -199,6 +203,7 @@
         for app in $all_apps; do
           if ! echo "$installed" | grep -q "$app"; then
             echo "⚙️ Instalando app faltante: $app"
+            # Esta es la línea que finalmente instala tu custom app en el sitio
             docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} install-app $app || true
           else
             echo "✅ App ya instalada: $app"
@@ -233,6 +238,6 @@
           - "✅ ERPNext desplegado correctamente"
           - "🖼️ Imagen: {{ target_image }}"
           - "📦 Apps: erpnext, {{ custom_apps | join(', ') }}"
-          - "🌐 http://{{ ansible_host }}:8080"
-          - "👤 Administrator / 🔑 {{ admin_password }}"
+          - "🌐 Acceso (HTTP): http://{{ ansible_host }}:8080"
+          - "👤 Usuario Admin: Administrator / 🔑 Contraseña: {{ admin_password }}"
           - "=========================================="
