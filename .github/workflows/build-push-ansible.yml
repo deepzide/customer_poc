@@ -69,7 +69,7 @@ jobs:
           " $CFG_FILE
         
       # 4.2️⃣ DEBUG: Mostrar Containerfile modificado
-      - name: Debug: Show modified Containerfile
+      - name:  Show modified Containerfile
         run: |
           echo "====================================================="
           echo "CONTENIDO DEL Containerfile DESPUÉS DE LA INYECCIÓN"
