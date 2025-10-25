@@ -46,20 +46,20 @@ jobs:
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
-      # 4.1️⃣ Inyectar código custom en el Containerfile (CORRECCIÓN DE DELIMITADOR SED)
+      # 4.1️⃣ Inyectar código custom en el Containerfile (MÉTODO DE REEMPLAZO DE ANCLA)
       - name: Inject custom app installation into Containerfile
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
           
-          # ANCLA: La línea de limpieza del .git
-          ANCHOR='find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
+          # ANCLA: La línea 'FROM' que marca el inicio de la segunda etapa.
+          # ¡¡¡CLAVE: Debemos escapar el ${...} para que el shell no lo expanda!!!
+          ANCHOR="^FROM frappe/base:\$\{FRAPPE_BRANCH\} AS backend"
           
-          # Usa '#' como delimitador de sed en lugar de '/' para evitar conflictos con el '.'
-          # El comando de sed es concatenado en una línea para evitar problemas de newline en el shell.
-          sed -i.bak "\
-          \#$ANCHOR#a \
-          \
+          # BLOQUE DE REEMPLAZO: Incluye nuestro código Y la línea original del ANCLA al final.
+          # Usamos saltos de línea \n para el Containerfile.
+          REPLACEMENT_BLOCK="\
+          \n\
           # ----------------------------------------------------------------------\n\
           # [CAPA CORTA - INYECCIÓN CUSTOM]\n\
           # ----------------------------------------------------------------------\n\
@@ -68,7 +68,12 @@ jobs:
           USER frappe\n\
           WORKDIR /home/frappe/frappe-bench\n\
           RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
-          " $CFG_FILE
+          \n\
+          # Re-insertar la línea original del ANCLA\n\
+          FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
+
+          # Comando de sustitución (s) usando '#' como delimitador
+          sed -i.bak "s#$ANCHOR#$REPLACEMENT_BLOCK#g" $CFG_FILE
         
       # 4.2️⃣ DEBUG: Mostrar Containerfile modificado
       - name: Show modified Containerfile
@@ -136,10 +141,6 @@ jobs:
       - name: Test Ansible connection
         run: |
           ansible all -i ./ansible/inventory.ini -m ping
-
-      - name: Deploy docker-compose via Ansible
-        run: |
-          ansible-playbook -i ./ansible/inventory.yml ./ansible/docker_erpnext.yml -v
 
       - name: Deploy docker-compose via Ansible
         run: |
