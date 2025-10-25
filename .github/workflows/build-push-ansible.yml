@@ -57,16 +57,16 @@ jobs:
           
           # Usa 'a\' para APPEND después de la línea ANCHOR, con escapes '\n\'
           sed -i.bak "/$ANCHOR/a \
-\
-# ----------------------------------------------------------------------\n\
-# [CAPA CORTA - INYECCIÓN CUSTOM]\n\
-# ----------------------------------------------------------------------\n\
-COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
-\n\
-USER frappe\n\
-WORKDIR /home/frappe/frappe-bench\n\
-RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
-" $CFG_FILE
+          \
+          # ----------------------------------------------------------------------\n\
+          # [CAPA CORTA - INYECCIÓN CUSTOM]\n\
+          # ----------------------------------------------------------------------\n\
+          COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
+          \n\
+          USER frappe\n\
+          WORKDIR /home/frappe/frappe-bench\n\
+          RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
+          " $CFG_FILE
         
       # 4.2️⃣ DEBUG: Mostrar Containerfile modificado
       - name: Debug: Show modified Containerfile
