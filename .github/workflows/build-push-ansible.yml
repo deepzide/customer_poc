@@ -67,6 +67,10 @@ jobs:
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-15
             APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
+          cache-from: |
+            type=gha
+            type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
+          cache-to: type=gha,mode=max
 
       # 9️⃣ Generate compose.yaml with custom image
       # 9️⃣ Generate compose.yaml with custom image
