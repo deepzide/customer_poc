@@ -1,4 +1,4 @@
-name:  Deploy to server
+name: Deploy to server
 
 on:
   push:
@@ -16,13 +16,14 @@ on:
 
 env:
   SERVER_IP: 46.62.156.99
+  CUSTOM_APP_NAME: custom_app # Asegúrate que esta carpeta existe en tu repositorio
 
 jobs:
   build:
     runs-on: self
 
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout repo (TU APP CUSTOM ESTÁ AQUÍ EN ./custom_app)
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -34,17 +35,40 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      # 3️⃣ Encode apps.json
+      # 3️⃣ Encode apps.json (Debe excluir tu 'custom_app' para optimizar el caché)
       - name: Encode apps.json
         id: encode
         run: |
+          # Si tu apps.json es muy grande, asegúrate de que solo contenga apps base (ERPNext/HRMS)
           export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
           echo "APPS_JSON_BASE64=$APPS_JSON_BASE64" >> $GITHUB_ENV
 
-      # 4️⃣ Clone frappe_docker1
+      # 4️⃣ Clone frappe_docker
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
+      # 4.1️⃣ Inyectar código custom en el Containerfile (¡CLAVE!)
+      - name: Inject custom app installation into Containerfile
+        run: |
+          CFG_FILE="./frappe_docker/images/layered/Containerfile"
+          APP_NAME="${{ env.CUSTOM_APP_NAME }}"
+
+          # Inserta las instrucciones de COPY y RUN bench install-app en la etapa 'builder',
+          # justo antes de la línea de limpieza de .git.
+          # Esto es la 'Capa Corta' que rompe el caché solo en este punto.
+          sed -i '/^.*find apps -mindepth 1 -path "\*\/.*\.git" | xargs rm -fr/i \
+\
+# ----------------------------------------------------------------------\
+# [CAPA CORTA - INYECCIÓN CUSTOM]\
+# ----------------------------------------------------------------------\
+# El origen es la carpeta custom_app en el root del workspace\
+COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\
+\
+USER frappe\
+WORKDIR /home/frappe/frappe-bench\
+RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\
+' $CFG_FILE
+        
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -59,7 +83,9 @@ jobs:
       - name: Build and push custom ERPNext image
         uses: docker/build-push-action@v5
         with:
-          context: ./frappe_docker
+          # CAMBIO CLAVE: Usar el directorio raíz como contexto.
+          # Esto permite que 'COPY ./custom_app' acceda a tu carpeta.
+          context: . 
           file: ./frappe_docker/images/layered/Containerfile
           push: true 
           tags: ${{ secrets.DOCKER_USER }}/deepzide:latest
@@ -71,22 +97,6 @@ jobs:
             type=gha
             type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
           cache-to: type=gha,mode=max
-
-      # 9️⃣ Generate compose.yaml with custom image
-      # 9️⃣ Generate compose.yaml with custom image
-      #- name: Build layered image
-        #run: |
-          #docker build \
-            #--build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-            #--build-arg=FRAPPE_BRANCH=version-15 \
-            #--build-arg=APPS_JSON_BASE64="${{ secrets.APPS_JSON_BASE64 }}" \
-            #--tag=${{ secrets.DOCKER_USER }}/deepzide:latest \
-            #--file=./frappe_docker/images/layered/Containerfile .
-      #- name: Push the Existing Image to Registry
-        #run: |
-            #echo "Iniciando push de ${{ secrets.DOCKER_USER }}/deepzide:latest"
-            #docker push ${{ secrets.DOCKER_USER }}/deepzide:latest
-
 
   ansible:
     needs: build
@@ -134,4 +144,5 @@ jobs:
       # 6️⃣ Run playbook for remote deployment
       - name: Deploy docker-compose via Ansible
         run: |
+          # Asume que el playbook se llama 'deploy_erpnext.yml' y está en ./ansible/
           ansible-playbook -i ./ansible/inventory.ini ./ansible/docker_erpnext.yml -v
