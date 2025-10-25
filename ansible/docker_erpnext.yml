@@ -100,16 +100,6 @@
       args:
         executable: /bin/bash
 
-    - name: Agregar apps al comando bench new-site
-      ansible.builtin.shell: |
-        apps_flags=""
-        for app in {{ custom_apps | join(' ') }}; do
-          apps_flags="$apps_flags --install-app $app"
-        done
-        sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
-      args:
-        executable: /bin/bash
-
     # ------------------------------------------------------------------------
     # 🐳 Pull de la imagen custom y levantar stack
     # ------------------------------------------------------------------------
