@@ -1,4 +1,4 @@
-name: Deploy to server
+name:  Deploy to server
 
 on:
   push:
@@ -16,14 +16,13 @@ on:
 
 env:
   SERVER_IP: 46.62.156.99
-  CUSTOM_APP_NAME: custom_app # Nombre de tu carpeta con la app custom
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo (obtiene tu código, incluyendo ./custom_app)
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -35,7 +34,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      # 3️⃣ Encode apps.json (Solo apps base)
+      # 3️⃣ Encode apps.json
       - name: Encode apps.json
         id: encode
         run: |
@@ -45,7 +44,6 @@ jobs:
       # 4️⃣ Clone frappe_docker
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
-        
 
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
@@ -58,28 +56,28 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      # 7️⃣ Build and push custom ERPNext image (Usa contexto: .)
+      # 9️⃣ Generate compose.yaml with custom image
+      # 9️⃣ Generate compose.yaml with custom image
       - name: Build and push custom ERPNext image
         uses: docker/build-push-action@v5
         with:
-          context: . 
+          context: ./frappe_docker
           file: ./frappe_docker/images/layered/Containerfile
-          push: true 
+          push: true
           tags: ${{ secrets.DOCKER_USER }}/deepzide:latest
+          no-cache: true  # ← Solo esto mientras desarrollas
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-15
             APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
-          cache-from: |
-            type=gha
-            type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
-          cache-to: type=gha,mode=max
+
 
   ansible:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repo
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -87,24 +85,37 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
+          
+          # Decode base64 key and save it
           echo "${{ secrets.SSH_KEY_PRIVATE }}" | base64 --decode > ~/.ssh/erpnext_deploy_key
           chmod 600 ~/.ssh/erpnext_deploy_key
+          
+          # Add known host to avoid prompt
           ssh-keyscan -H ${{ env.SERVER_IP }} >> ~/.ssh/known_hosts 2>/dev/null
+          
+          # Test SSH connection
+          echo "Testing SSH connection..."
           ssh -i ~/.ssh/erpnext_deploy_key -o StrictHostKeyChecking=no root@${{ env.SERVER_IP }} "echo 'SSH connection successful!'"
 
+      # 4️⃣ Create Ansible inventory
       - name: Create dynamic inventory
         run: |
           SSH_KEY_PATH="${HOME}/.ssh/erpnext_deploy_key"
+          
           cat > ./ansible/inventory.ini <<EOF
           [erpnext]
           ${{ env.SERVER_IP }} ansible_user=root ansible_ssh_private_key_file=${SSH_KEY_PATH}
           EOF
+          
+          echo "=== Generated Inventory ==="
           cat ./ansible/inventory.ini
 
+      # 5️⃣ Test Ansible connection
       - name: Test Ansible connection
         run: |
           ansible all -i ./ansible/inventory.ini -m ping
 
+      # 6️⃣ Run playbook for remote deployment
       - name: Deploy docker-compose via Ansible
         run: |
           ansible-playbook -i ./ansible/inventory.ini ./ansible/docker_erpnext.yml -v
