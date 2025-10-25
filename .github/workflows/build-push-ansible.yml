@@ -46,33 +46,42 @@ jobs:
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
-      # 4.1️⃣ Inyectar código custom en el Containerfile (CORRECCIÓN DE ESCAPE DE SED)
+      # 4.1️⃣ Inyectar código custom en el Containerfile (MÉTODO GREP/CAT - A PRUEBA DE ERRORES)
       - name: Inject custom app installation into Containerfile
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
           
-          # ANCLA: ¡¡¡ESCAPAMOS '$', '{' y '}' para SED!!!
-          # Esto evita que sed interprete '{' y '}' como comandos de rango.
-          ANCHOR="^FROM frappe/base:\\$\\{FRAPPE_BRANCH\\} AS backend"
+          # ANCLA (Búsqueda literal, sin regex, escapando '$' para el shell)
+          ANCHOR='FROM frappe/base:${FRAPPE_BRANCH} AS backend'
           
-          # BLOQUE DE REEMPLAZO: Escapamos los '#' internos.
-          REPLACEMENT_BLOCK="\
-          \n\
-          \# ----------------------------------------------------------------------\n\
-          \# [CAPA CORTA - INYECCIÓN CUSTOM]\n\
-          \# ----------------------------------------------------------------------\n\
-          COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
-          \n\
-          USER frappe\n\
-          WORKDIR /home/frappe/frappe-bench\n\
-          RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
-          \n\
-          \# Re-insertar la línea original del ANCLA (con $ escapado para el shell)\n\
-          FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
+          # 1. Crear archivo temporal
+          TMP_FILE=$(mktemp)
+          
+          # 2. Volcar contenido ANTES del ancla (sin incluir la línea del ancla)
+          # Usamos grep -F (búsqueda literal) y head -n -1 (quitar la última línea)
+          grep -B 999 -F -m 1 "$ANCHOR" "$CFG_FILE" | head -n -1 > "$TMP_FILE"
 
-          # Comando de sustitución (s) usando '#' como delimitador
-          sed -i.bak "s#$ANCHOR#$REPLACEMENT_BLOCK#g" $CFG_FILE
+          # 3. Echar nuestro bloque de inyección (usando 'cat <<EOF')
+          # ¡El 'EOF' DEBE estar al inicio de la línea, sin indentación!
+          cat >> "$TMP_FILE" <<EOF
+
+          # ----------------------------------------------------------------------
+          # [CAPA CORTA - INYECCIÓN CUSTOM]
+          # ----------------------------------------------------------------------
+          COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME
+
+          USER frappe
+          WORKDIR /home/frappe/frappe-bench
+          RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps
+
+          EOF
+
+          # 4. Volcar el ANCLA y el resto del archivo
+          grep -A 999 -F -m 1 "$ANCHOR" "$CFG_FILE" >> "$TMP_FILE"
+          
+          # 5. Reemplazar el archivo original
+          mv "$TMP_FILE" "$CFG_FILE"
         
       # 4.2️⃣ DEBUG: Mostrar Containerfile modificado
       - name: Show modified Containerfile
