@@ -46,31 +46,29 @@ jobs:
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
-      # 4.1️⃣ Inyectar código custom en el Containerfile (MÉTODO DE REEMPLAZO DE ANCLA)
+      # 4.1️⃣ Inyectar código custom en el Containerfile (CORRECCIÓN DE ESCAPE DE DELIMITADOR)
       - name: Inject custom app installation into Containerfile
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
           
-          # ANCLA: La línea 'FROM' que marca el inicio de la segunda etapa.
-          # ¡¡¡CLAVE: Debemos escapar el ${...} para que el shell no lo expanda!!!
+          # ANCLA: La línea 'FROM' (escapar '$' para el shell)
           ANCHOR="^FROM frappe/base:\$\{FRAPPE_BRANCH\} AS backend"
           
-          # BLOQUE DE REEMPLAZO: Incluye nuestro código Y la línea original del ANCLA al final.
-          # Usamos saltos de línea \n para el Containerfile.
+          # BLOQUE DE REEMPLAZO: ¡¡¡Los '#' internos AHORA ESTÁN ESCAPADOS ('\#')!!!
           REPLACEMENT_BLOCK="\
-          \n\
-          # ----------------------------------------------------------------------\n\
-          # [CAPA CORTA - INYECCIÓN CUSTOM]\n\
-          # ----------------------------------------------------------------------\n\
-          COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
-          \n\
-          USER frappe\n\
-          WORKDIR /home/frappe/frappe-bench\n\
-          RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
-          \n\
-          # Re-insertar la línea original del ANCLA\n\
-          FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
+\n\
+\# ----------------------------------------------------------------------\n\
+\# [CAPA CORTA - INYECCIÓN CUSTOM]\n\
+\# ----------------------------------------------------------------------\n\
+COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\
+\n\
+USER frappe\n\
+WORKDIR /home/frappe/frappe-bench\n\
+RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n\
+\n\
+\# Re-insertar la línea original del ANCLA\n\
+FROM frappe/base:\${FRAPPE_BRANCH} AS backend"
 
           # Comando de sustitución (s) usando '#' como delimitador
           sed -i.bak "s#$ANCHOR#$REPLACEMENT_BLOCK#g" $CFG_FILE
