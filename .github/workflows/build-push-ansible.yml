@@ -81,7 +81,7 @@ jobs:
       - name: Push the Existing Image to Registry
         run: |
             echo "Iniciando push de ${{ secrets.DOCKER_USER }}/deepzide:latest"
-          #docker push ${{ secrets.DOCKER_USER }}/deepzide:latest
+            docker push ${{ secrets.DOCKER_USER }}/deepzide:latest
 
 
   ansible:
