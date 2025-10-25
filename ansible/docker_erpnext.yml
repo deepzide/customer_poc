@@ -7,7 +7,7 @@
     repo_url: https://github.com/frappe/frappe_docker.git
     target_image: dcorps/deepzide:latest
     site_name: frontend
-    admin_password: qwe # Puedes cambiarla si quieres
+    admin_password: admin  # puedes cambiarla si quieres
 
   tasks:
     # ------------------------------------------------------------------------
@@ -81,24 +81,18 @@
         force: yes
 
     # ------------------------------------------------------------------------
-    # 📋 Leer apps desde archivo custom.txt local y preparar flags
+    # 📋 Leer apps desde archivo custom.txt local
     # ------------------------------------------------------------------------
     - name: Leer apps desde custom.txt local
       ansible.builtin.set_fact:
         custom_apps: "{{ lookup('file', '../custom.txt').split('\n') | select('match', '^[^#]') | reject('equalto', '') | reject('equalto', 'erpnext') | list }}"
 
-    - name: Preparar apps_flags para new-site
-      ansible.builtin.set_fact:
-        install_apps_flag: "{{ custom_apps | map('regex_replace', '^(.*)$', '--install-app \\1') | join(' ') }}"
-
-    - name: Mostrar apps leídas y flags generados
+    - name: Mostrar apps leídas desde custom.txt
       ansible.builtin.debug:
-        msg:
-          - "Apps leídas: {{ custom_apps }}"
-          - "Apps flags: {{ install_apps_flag }}"
+        msg: "Apps leídas (sin duplicar erpnext): {{ custom_apps }}"
 
     # ------------------------------------------------------------------------
-    # ✏️ Modificar imagen en pwd.yml
+    # ✏️ Modificar imagen y new-site
     # ------------------------------------------------------------------------
     - name: Replace frappe/erpnext image with custom image
       ansible.builtin.shell: |
@@ -106,9 +100,15 @@
       args:
         executable: /bin/bash
 
-    # **NOTA:** Se ha eliminado el task "Agregar apps al comando bench new-site"
-    # ya que la creación manual del sitio (TASK [Create site if missing])
-    # ahora maneja la instalación de apps.
+    - name: Agregar apps al comando bench new-site
+      ansible.builtin.shell: |
+        apps_flags=""
+        for app in {{ custom_apps | join(' ') }}; do
+          apps_flags="$apps_flags --install-app $app"
+        done
+        sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
+      args:
+        executable: /bin/bash
 
     # ------------------------------------------------------------------------
     # 🐳 Pull de la imagen custom y levantar stack
@@ -119,7 +119,7 @@
 
     - name: Start base stack (db, redis)
       ansible.builtin.command:
-        cmd: docker compose -f pwd.yml up -d
+        cmd: docker compose -f pwd.yml up -d 
       args:
         chdir: "{{ project_dir }}/frappe_docker"
 
@@ -134,7 +134,7 @@
 
 
     # ------------------------------------------------------------------------
-    # ⚡ Crear sitio si no existe (CORREGIDO para instalar todas las apps)
+    # ⚡ Crear sitio si no existe
     # ------------------------------------------------------------------------
     - name: Check if site exists
       ansible.builtin.command:
@@ -152,7 +152,6 @@
           --mariadb-root-password 123 \
           --admin-password {{ admin_password }} \
           --install-app erpnext \
-          {{ install_apps_flag }} \
           --force
       args:
         chdir: "{{ project_dir }}/frappe_docker"
@@ -167,6 +166,15 @@
     # ------------------------------------------------------------------------
     # 🔄 Migraciones y build
     # ------------------------------------------------------------------------
+    
+    # 🧩 NUEVO PASO: Limpiar caches para prevenir el KeyError antes de migrar
+    - name: Clear cache before migrations
+      ansible.builtin.shell: |
+        docker compose -f pwd.yml exec -T backend bench clear-cache
+      args:
+        chdir: "{{ project_dir }}/frappe_docker"
+      when: site_check.rc == 0 or create_site_output.rc == 0
+
     - name: Run migrations
       ansible.builtin.shell: |
         docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} migrate
@@ -182,11 +190,10 @@
       when: site_check.rc == 0 or create_site_output.rc == 0
 
     # ------------------------------------------------------------------------
-    # 🧩 Instalar apps adicionales (como fallback, ya deben estar instaladas)
+    # 🧩 Instalar apps adicionales (erpnext + custom)
     # ------------------------------------------------------------------------
     - name: Ensure all required apps (erpnext + custom) are installed
       ansible.builtin.shell: |
-        # Usamos la misma lógica de flags para listar todas las apps requeridas
         all_apps="erpnext {{ custom_apps | join(' ') }}"
         installed=$(docker compose -f pwd.yml exec -T backend bench --site {{ site_name }} list-apps)
         for app in $all_apps; do
@@ -227,5 +234,5 @@
           - "🖼️ Imagen: {{ target_image }}"
           - "📦 Apps: erpnext, {{ custom_apps | join(', ') }}"
           - "🌐 http://{{ ansible_host }}:8080"
-          - "👤 qwe@gmail.com / 🔑 {{ admin_password }}"
+          - "👤 Administrator / 🔑 {{ admin_password }}"
           - "=========================================="
