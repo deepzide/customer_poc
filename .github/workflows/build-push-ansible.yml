@@ -52,12 +52,14 @@ jobs:
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
           
-          # Bloque de inyección: Usamos la etapa 'builder' como ancla segura.
-          INJECTION_BLOCK="\n\n# ----------------------------------------------------------------------\n# [CAPA CORTA - INYECCIÓN CUSTOM]\n# Esta capa rompe el cache si el contenido de ./custom_app cambia.\n# ----------------------------------------------------------------------\nCOPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\nUSER frappe\nWORKDIR /home/frappe/frappe-bench\nRUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\n"
+          # Bloque de inyección: Definido como una cadena de una sola línea con '\n'
+          # para que Bash y SED lo interpreten correctamente.
+          INJECTION_BLOCK="\n\n# ----------------------------------------------------------------------\n# [CAPA CORTA - INYECCIÓN CUSTOM]\n# Esta capa rompe el cache si el contenido de ./custom_app cambia.\n# ----------------------------------------------------------------------\nCOPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\nUSER frappe\nWORKDIR /home/frappe/frappe-bench\nRUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps"
 
-          # Inserta el bloque ANTES de la línea que comienza con 'FROM frappe/base'
-          # Esto evita tocar el complejo bloque RUN original y soluciona el error 'unknown instruction: find'.
-          sed -i.bak "/^FROM frappe\/base/i $INJECTION_BLOCK" $CFG_FILE
+          # Utiliza 'a' (append after) y busca la línea de cleanup para insertar el nuevo bloque *después*.
+          # Esto garantiza que el RUN original termine limpiamente y que tu código inicie una nueva instrucción.
+          # Esto resuelve el error 'unknown instruction: n'.
+          sed -i.bak "/find apps -mindepth 1 -path \"\*\/.*\.git\" | xargs rm -fr/a $INJECTION_BLOCK" $CFG_FILE
         
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
