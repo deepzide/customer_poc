@@ -1,0 +1,78 @@
+{
+ "actions": [
+  {
+   "allow": "Submit",
+   "name": "Submit"
+  }
+ ],
+ "allow_copy": 0,
+ "allow_guest_to_view": 0,
+ "allow_import": 0,
+ "allow_rename": 0,
+ "autoname": "field:title",
+ "beta": 0,
+ "creation": "2025-10-24 15:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "editable_grid": 1,
+ "email_field": null,
+ "engine": "InnoDB",
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Título de Solicitud",
+   "reqd": 1,
+   "unique": 1,
+   "set_primary_key": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Descripción Detallada",
+   "reqd": 0,
+   "options": 200
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "default": "Borrador",
+   "options": "Borrador\nEn Proceso\nCompletado"
+  }
+ ],
+ "image_field": null,
+ "in_create": 0,
+ "is_submittable": 1,
+ "issingle": 0,
+ "istable": 0,
+ "max_attachments": 0,
+ "modified": "2025-10-24 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Custom App",
+ "name": "Test Request",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "set_user_permissions": 0,
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "restrict_to_domain": null,
+ "show_name_in_global_search": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "track_seen": 0
+}
