@@ -1,4 +1,3 @@
-frappe
 erpnext
 hrms
-custom_app
+
