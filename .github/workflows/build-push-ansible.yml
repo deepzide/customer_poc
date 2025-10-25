@@ -46,20 +46,28 @@ jobs:
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
-      # 4.1️⃣ Inyectar código custom en el Containerfile (CORRECCIÓN FINAL Y SEGURA)
+      # 4.1️⃣ Inyectar código custom en el Containerfile (MÉTODO LÍNEA POR LÍNEA: EL MÁS SEGURO)
       - name: Inject custom app installation into Containerfile
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
           
-          # Bloque de inyección: Definido como una cadena de una sola línea con '\n'
-          # para que Bash y SED lo interpreten correctamente.
-          INJECTION_BLOCK="\n\n# ----------------------------------------------------------------------\n# [CAPA CORTA - INYECCIÓN CUSTOM]\n# Esta capa rompe el cache si el contenido de ./custom_app cambia.\n# ----------------------------------------------------------------------\nCOPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\n\nUSER frappe\nWORKDIR /home/frappe/frappe-bench\nRUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps"
-
-          # Utiliza 'a' (append after) y busca la línea de cleanup para insertar el nuevo bloque *después*.
-          # Esto garantiza que el RUN original termine limpiamente y que tu código inicie una nueva instrucción.
-          # Esto resuelve el error 'unknown instruction: n'.
-          sed -i.bak "/find apps -mindepth 1 -path \"\*\/.*\.git\" | xargs rm -fr/a $INJECTION_BLOCK" $CFG_FILE
+          # ANCLA: La línea de limpieza del .git es la última línea de un RUN
+          ANCHOR="find apps -mindepth 1 -path \"\*\/.*\.git\" | xargs rm -fr"
+          
+          # Usamos 'a\' para APPEND después de la línea ANCHOR. Insertamos el bloque línea por línea.
+          # Esto evita cualquier problema de caracter 'n' o de control.
+          
+          sed -i.bak "/$ANCHOR/a \
+          \
+          # ----------------------------------------------------------------------\
+          # [CAPA CORTA - INYECCIÓN CUSTOM]\
+          # ----------------------------------------------------------------------\
+          COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\
+          \
+          USER frappe\
+          WORKDIR /home/frappe/frappe-bench\
+          RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps" $CFG_FILE
         
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
