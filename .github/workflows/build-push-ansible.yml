@@ -20,7 +20,7 @@ env:
 
 jobs:
   build:
-    runs-on: self
+    runs-on: ubuntu-latest
 
     steps:
       # 1️⃣ Checkout repo (obtiene tu código, incluyendo ./custom_app)
