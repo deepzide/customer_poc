@@ -16,14 +16,14 @@ on:
 
 env:
   SERVER_IP: 46.62.156.99
-  CUSTOM_APP_NAME: custom_app # Asegúrate que esta carpeta existe en tu repositorio
+  CUSTOM_APP_NAME: custom_app # Nombre de tu carpeta con la app custom
 
 jobs:
   build:
-    runs-on: self
+    runs-on: self # Se ejecuta en tu Self-Hosted Runner
 
     steps:
-      # 1️⃣ Checkout repo (TU APP CUSTOM ESTÁ AQUÍ EN ./custom_app)
+      # 1️⃣ Checkout repo (obtiene tu código, incluyendo ./custom_app)
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -35,11 +35,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      # 3️⃣ Encode apps.json (Debe excluir tu 'custom_app' para optimizar el caché)
+      # 3️⃣ Encode apps.json (Solo apps base, excluyendo custom_app)
       - name: Encode apps.json
         id: encode
         run: |
-          # Si tu apps.json es muy grande, asegúrate de que solo contenga apps base (ERPNext/HRMS)
+          # Solo codifica el apps.json base (ERPNext/HRMS)
           export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
           echo "APPS_JSON_BASE64=$APPS_JSON_BASE64" >> $GITHUB_ENV
 
@@ -47,27 +47,30 @@ jobs:
       - name: Clone frappe_docker
         run: git clone https://github.com/frappe/frappe_docker
 
-      # 4.1️⃣ Inyectar código custom en el Containerfile (¡CLAVE!)
+      # 4.1️⃣ Inyectar código custom en el Containerfile (¡OPTIMIZACIÓN DE CACHÉ!)
+      # Esto inserta la copia y la instalación de tu app custom al final del build.
       - name: Inject custom app installation into Containerfile
         run: |
           CFG_FILE="./frappe_docker/images/layered/Containerfile"
           APP_NAME="${{ env.CUSTOM_APP_NAME }}"
+          
+          # Bloque a inyectar, definido con un literal block scalar (clave para evitar errores de YAML)
+          INJECTION_BLOCK="
+# ----------------------------------------------------------------------
+# [CAPA CORTA - INYECCIÓN CUSTOM]
+# Esta capa rompe el cache si el contenido de ./custom_app cambia.
+# ----------------------------------------------------------------------
+COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME
 
-          # Inserta las instrucciones de COPY y RUN bench install-app en la etapa 'builder',
-          # justo antes de la línea de limpieza de .git.
-          # Esto es la 'Capa Corta' que rompe el caché solo en este punto.
-          sed -i '/^.*find apps -mindepth 1 -path "\*\/.*\.git" | xargs rm -fr/i \
-\
-# ----------------------------------------------------------------------\
-# [CAPA CORTA - INYECCIÓN CUSTOM]\
-# ----------------------------------------------------------------------\
-# El origen es la carpeta custom_app en el root del workspace\
-COPY --chown=frappe:frappe ./$APP_NAME /home/frappe/frappe-bench/apps/$APP_NAME\
-\
-USER frappe\
-WORKDIR /home/frappe/frappe-bench\
-RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\
-' $CFG_FILE
+USER frappe
+WORKDIR /home/frappe/frappe-bench
+RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps
+"
+          # El comando sed inserta el bloque ANTES de la línea que limpia los archivos .git.
+          # Usamos un truco de sed para pasar el bloque multilínea de forma segura.
+          # Esto resuelve los errores de sintaxis en el shell.
+          sed -i -e '/^.*find apps -mindepth 1 -path "\*\/.*\.git" | xargs rm -fr/i \
+'"$INJECTION_BLOCK" $CFG_FILE
         
       # 5️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
@@ -80,11 +83,11 @@ RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
+      # 7️⃣ Build and push custom ERPNext image
       - name: Build and push custom ERPNext image
         uses: docker/build-push-action@v5
         with:
-          # CAMBIO CLAVE: Usar el directorio raíz como contexto.
-          # Esto permite que 'COPY ./custom_app' acceda a tu carpeta.
+          # Usamos el directorio raíz como contexto para que el COPY pueda encontrar './custom_app'
           context: . 
           file: ./frappe_docker/images/layered/Containerfile
           push: true 
@@ -93,6 +96,7 @@ RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-15
             APPS_JSON_BASE64=${{ env.APPS_JSON_BASE64 }}
+          # Configuración de caché optimizada para Self-Hosted Runner
           cache-from: |
             type=gha
             type=registry,ref=${{ secrets.DOCKER_USER }}/deepzide:latest
@@ -144,5 +148,4 @@ RUN bench install-app $APP_NAME --skip-assets --skip-dev-checks --resolve-deps\
       # 6️⃣ Run playbook for remote deployment
       - name: Deploy docker-compose via Ansible
         run: |
-          # Asume que el playbook se llama 'deploy_erpnext.yml' y está en ./ansible/
           ansible-playbook -i ./ansible/inventory.ini ./ansible/docker_erpnext.yml -v
