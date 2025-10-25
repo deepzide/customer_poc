@@ -106,7 +106,7 @@
         for app in {{ custom_apps | join(' ') }}; do
           apps_flags="$apps_flags --install-app $app"
         done
-        sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext$apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
+        sed -i "/bench new-site/s|--install-app erpnext|--install-app erpnext $apps_flags|g" {{ project_dir }}/frappe_docker/pwd.yml
       args:
         executable: /bin/bash
 
