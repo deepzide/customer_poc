@@ -1,0 +1,38 @@
+{
+ "app": "Customer Poc",
+ "charts": [],
+ "content": "[{\"id\":\"27x2-DL8dS\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Customer POC</span>\",\"col\":12}},{\"id\":\"eiZUlS2ww0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Customer\",\"col\":12}}]",
+ "creation": "2025-10-25 15:21:52.865849",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "grid",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Customer POC",
+ "link_type": "DocType",
+ "links": [],
+ "modified": "2025-10-25 15:23:14.008496",
+ "modified_by": "Administrator",
+ "module": "Customer Poc",
+ "name": "Customer POC",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [
+  {
+   "document_type": "Customer",
+   "label": "Customer",
+   "quick_list_filter": "[]"
+  }
+ ],
+ "roles": [],
+ "sequence_id": 25.0,
+ "shortcuts": [],
+ "title": "Customer POC",
+ "type": "Workspace"
+}
