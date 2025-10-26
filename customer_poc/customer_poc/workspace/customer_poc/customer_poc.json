@@ -12,10 +12,10 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "Customer POC",
+ "label": "GRACIAS",
  "link_type": "DocType",
  "links": [],
- "modified": "2025-10-25 15:23:14.008496",
+ "modified": "2025-10-25 15:25:14.008496",
  "modified_by": "Administrator",
  "module": "Customer Poc",
  "name": "Customer POC",
@@ -33,6 +33,6 @@
  "roles": [],
  "sequence_id": 25.0,
  "shortcuts": [],
- "title": "Customer POC",
+ "title": "GRACIAS",
  "type": "Workspace"
 }
